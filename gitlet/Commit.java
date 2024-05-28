@@ -59,19 +59,28 @@ public class Commit implements Serializable {
         this.commitSave = generateSaveFile();
     }
 
+    /**
+     * Generate date of String Type using DateFormat Class
+     * @return date
+     */
     private String dateToString(Date currentTime) {
         DateFormat df = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         return df.format(this.currentTime);
     }
 
+    /**
+     * Each commit is identified by its SHA-1 id, which must include the file (blob)
+     * references of its files, parent reference, log message, and commit time.
+     * @return commit id
+     */
     public String getId() {
-        /**
-         * Each commit is identified by its SHA-1 id, which must include the file (blob)
-         * references of its files, parent reference, log message, and commit time.
-         * */
         return Utils.sha1(this.blobRef, this.parent, this.message, this.timestamp);
     }
 
+    /**
+     * TODO: Make up the javadoc
+     * @return TODO:
+     */
     private File generateSaveFile() {
         return join(OBJECT_DIR, id);
     }
@@ -80,5 +89,10 @@ public class Commit implements Serializable {
         writeObject(commitSave, this);
     }
 
-
+    /**
+     * @return Blob Reference implemented using a hash map
+     */
+    public HashMap<String, String> getBlobRef() {
+        return blobRef;
+    }
 }

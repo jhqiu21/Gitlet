@@ -74,27 +74,27 @@ public class Repository {
         }
     }
 
+    /**
+     * init and save a commit in the data base
+     */
     private static void initCommit() {
-        /**
-         * init and save a commit in the data base
-         * */
         Commit initcommit = new Commit();
         commit = initcommit;
         initcommit.save();
     }
 
+    /**
+     * initialize a head pointer
+     */
     private static void initHead() {
-        /**
-         * initialize a head pointer
-         * */
         writeObject(HEADS_DIR, "master");
         writeContents(HEAD_FILE, commit.getId());
     }
 
+    /**
+     * initialize a head pointer to the master branch
+     */
     private static void initHeadPointer() {
-        /**
-         * initialize a head pointer to the master branch
-         * */
         writeObject(HEAD_FILE, "master");
     }
 
@@ -108,14 +108,64 @@ public class Repository {
         storeBlob(blob);
     }
 
+
     public static File getFile(String file) {
         return Paths.get(file).isAbsolute()
                 ? new File(file)
                 : join(CWD, file);
     }
 
-    public static void storeBlob(Blob blob) {
 
+    public static void storeBlob(Blob blob) {
+        addStage = readAddStage();
+        removeStage = readRemoveStage();
+        commit = readCommit();
+        if (!commit.getBlobRef().containsKey(blob.getBlobPath()) || !removeStage.containsBlob(blob)) {
+            if (!addStage.containsBlob(blob) && !removeStage.containsBlob(blob)) {
+                blob.save();
+            }
+            if (addStage.containsFilePath(blob.getBlobPath())) {
+                addStage.delete(blob);
+            }
+            addStage.add(blob);
+            addStage.saveAddStage();
+        } else {
+            removeStage.delete(blob);
+            removeStage.saveRemoveStage();
+        }
     }
+
+
+    private static Stage readAddStage() {
+        if (!ADDSTAGE_FILE.exists()) {
+            return new Stage();
+        }
+        return readObject(ADDSTAGE_FILE, Stage.class);
+    }
+
+    private static Stage readRemoveStage() {
+        if (!REMOVESTAGE_FILE.exists()) {
+            return new Stage();
+        }
+        return readObject(REMOVESTAGE_FILE, Stage.class);
+    }
+
+    private static Commit readCommit() {
+        String currCommitId = getCurrCommitId();
+        File CURR_COMMIT_FILE = join(OBJECT_DIR, currCommitId);
+        return readObject(CURR_COMMIT_FILE, Commit.class);
+    }
+
+    private static String getCurrCommitId() {
+        String currBranch = getCurrBranch();
+        File HEAD_POINT_FILE = join(HEADS_DIR, currBranch);
+        return readContentsAsString(HEAD_POINT_FILE);
+    }
+
+    private static String getCurrBranch() {
+        return readContentsAsString(HEAD_FILE);
+    }
+
+
 
 }
