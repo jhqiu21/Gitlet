@@ -1,24 +1,105 @@
 package gitlet;
+import java.io.File;
+import static gitlet.Utils.*;
+import java.util.*;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+ *  @author QIU JINHANG
  */
-public class Main {
 
+
+public class Main {
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
     public static void main(String[] args) {
-        // TODO: what if args is empty?
+        /**
+         * If a user doesn’t input any arguments, print
+         * error message and exit
+         */
+        if (args.length == 0) {
+            System.out.println("Please enter a command.");
+            System.exit(0);
+        }
+
         String firstArg = args[0];
         switch(firstArg) {
+            /* `init` command */
             case "init":
-                // TODO: handle the `init` command
+                isVaildCMD(args, 1);
+                Repository.init();
                 break;
+            /* `add [filename]` command */
             case "add":
-                // TODO: handle the `add [filename]` command
+                isVaildCMD(args, 2);
+                Repository.add(args[1]);
                 break;
-            // TODO: FILL THE REST IN
+            /* `commit [filename]` command */
+            case "commit":
+                isVaildCMD(args, 2);
+                break;
+            /* `rm [filename]` command */
+            case "rm":
+                isVaildCMD(args, 2);
+                break;
+            /* `log` command */
+            case "log":
+                isVaildCMD(args, 1);
+                break;
+            /* `global-log` command */
+            case "global-log":
+                isVaildCMD(args, 1);
+                break;
+            /* `find [commit message]` command */
+            case "find":
+                isVaildCMD(args, 2);
+                break;
+            /* `status` command */
+            case "status":
+                isVaildCMD(args, 2);
+                break;
+            /* `checkout` command */
+            case "checkout":
+                isVaildCMD(args, 2);
+                break;
+            /* `branch [branch name]` command */
+            case "branch":
+                isVaildCMD(args, 2);
+                break;
+            /* `rm-branch [branch name]` command */
+            case "rm-branch":
+                isVaildCMD(args, 2);
+                break;
+            /* `reset [commit id]` command */
+            case "reset":
+                isVaildCMD(args, 2);
+                break;
+            /* `merge [branch name]` command */
+            case "merge":
+                isVaildCMD(args, 2);
+                break;
+
+            default:
+                /**
+                 * If a user inputs a command that doesn’t exist,
+                 * print the error message and exit.
+                 */
+                System.out.println("No command with that name exists.");
+                System.exit(0);
+        }
+    }
+
+    private static void isVaildCMD(String[] args, int len) {
+        /**
+         * Determine whether a cmd is valid
+         * If a user inputs a command with the wrong number or format of operands,
+         * print the message Incorrect operands. and exit.
+         * @param args Input Command
+         * @param len valid length of this command
+         */
+        if (args.length != len) {
+            System.out.println("Incorrect operands.");
+            System.exit(0);
         }
     }
 }
