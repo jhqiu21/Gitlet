@@ -9,7 +9,7 @@ public class Stage implements Serializable {
     /**
      * Implement a HashMap to store blob reference
      * Key: path, Value: blobId
-     * */
+     */
     private HashMap<String, String> blobRef = new HashMap<String, String>();
 
     /**
@@ -31,16 +31,20 @@ public class Stage implements Serializable {
     }
 
     /**
-     * Save Add Stage
-     * TODO: Make up the javadoc of the method
+     * Saves the current state of the Add Stage to the designated file.
+     * This method serializes the current Add Stage object and writes it to the file
+     * specified by {@code Repository.ADDSTAGE_FILE}. It ensures that any changes made
+     * to the Add Stage are persisted and can be retrieved later.
      */
     public void saveAddStage() {
         writeObject(Repository.ADDSTAGE_FILE, this);
     }
 
     /**
-     * Save Remove Stage
-     * TODO: Make up the javadoc of the method
+     * Saves the current state of the Remove Stage to the designated file.
+     * This method serializes the current Remove Stage object and writes it to the file
+     * specified by {@code Repository.REMOVESTAGE_FILE}. It ensures that any changes made
+     * to the Remove Stage are persisted and can be retrieved later.
      */
     public void saveRemoveStage() {
         writeObject(Repository.REMOVESTAGE_FILE, this);

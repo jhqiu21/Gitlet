@@ -22,14 +22,11 @@ import static gitlet.Utils.writeObject;
  */
 public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
-     *
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
 
-    /** The message of this Commit. */
     private String message;
     private String id;
     private Date currentTime;
@@ -38,7 +35,6 @@ public class Commit implements Serializable {
     private HashMap<String, String> blobRef;
     private File commitSave;
 
-    /* TODO: fill in the rest of this class. */
     public Commit(String message, HashMap<String,String> blobRef, List<String> parent) {
         this.currentTime = new Date();
         this.message = message;
@@ -78,18 +74,29 @@ public class Commit implements Serializable {
     }
 
     /**
-     * TODO: Make up the javadoc
-     * @return TODO:
+     * Generates a File object for saving, based on the file name.
+     *
+     * <p>This method creates a File object by joining the OBJECT_DIR with the
+     * provided file id</p>
+     *
+     * @return a File object representing the save file
      */
     private File generateSaveFile() {
         return join(OBJECT_DIR, id);
     }
 
+    /**
+     * Saves the current state of the object by writing it to a file.
+     *
+     * <p>Note: The current state of the object must be properly initialized and
+     * set before calling this method.</p>
+     */
     public void save() {
         writeObject(commitSave, this);
     }
 
     /**
+     * Get Blob reference implemented by HashMap
      * @return Blob Reference implemented using a hash map
      */
     public HashMap<String, String> getBlobRef() {
