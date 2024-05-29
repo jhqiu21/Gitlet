@@ -1,16 +1,21 @@
 package gitlet;
 
+import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static gitlet.Utils.writeObject;
+import static gitlet.Repository.OBJECT_DIR;
+import static gitlet.Utils.*;
 
 public class Stage implements Serializable {
     /**
      * Implement a HashMap to store blob reference
      * Key: path, Value: blobId
      */
-    private HashMap<String, String> blobRef = new HashMap<String, String>();
+    private Map<String, String> blobRef = new HashMap<String, String>();
 
     /**
      * Determine whether the stage have specific blob
@@ -73,6 +78,62 @@ public class Stage implements Serializable {
     public void add(Blob blob) {
         this.blobRef.put(blob.getBlobPath(), blob.getId());
     }
+
+    /**
+     * clear blob in stage
+     */
+    public void clear() {
+        blobRef.clear();
+    }
+
+    /**
+     * Get a List of Blob
+     */
+    public List<Blob> getBlobList() {
+        Blob blob;
+        List<Blob> blobList = new ArrayList<Blob>();
+        for (String id : blobRef.values()) {
+            blob = getBlobByID(id);
+            blobList.add(blob);
+        }
+        return blobList;
+    }
+
+    /**
+     * Get target blob through target id
+     * @param id of target blob
+     * @return target blob
+     */
+    public static Blob getBlobByID(String id) {
+        File BLOB_FILE = join(OBJECT_DIR, id);
+        return readObject(BLOB_FILE, Blob.class);
+    }
+
+    /**
+     * Get a Map of Blob Reference
+     * @return blob reference implemented by hash map
+     */
+    public Map<String, String> getBlobMap() {
+        return this.blobRef;
+    }
+
+    /**
+     * Determine whether Stage contains target blob
+     * @param fileName of target file
+     * @return boolean value
+     */
+    public boolean contains(String fileName) {
+        return getBlobMap().containsKey(fileName);
+    }
+
+    /**
+     * If stage exists, determine whether the stage is empty
+     * @return boolean value
+     */
+    public boolean isEmpty() {
+        return this.blobRef.isEmpty();
+    }
+
 
 
 }

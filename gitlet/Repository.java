@@ -3,6 +3,10 @@ package gitlet;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -15,12 +19,13 @@ import static gitlet.Utils.*;
  *
  * .gitlet
  *    |-- objects
- *    |      |-- commit/blob
+ *    |      |-- commit
+ *    |      |-- blob
  *    |-- refs
  *    |    |-- heads
- *    |         |-- master
+ *    |         |-- master: "main" branch
  *    |         |-- branch #
- *    |-- HEAD: contains a branch name
+ *    |-- HEAD_FILE: contains a branch name(String) Point to the current branch
  *    |-- add_stage
  *    |-- remove_stage
  *
@@ -219,6 +224,194 @@ public class Repository {
         return readContentsAsString(HEAD_FILE);
     }
 
+    /**
+     * Commit command
+     * @param message Every commit must have a non-blank message
+     */
+    public static void commit(String message) {
+        if (message.equals("")) {
+            System.out.println("Please enter a commit message.");
+            System.exit(0);
+        }
+        Commit newCommit = createCommit(message);
+    }
 
+    /**
+     * Creat a new commit with a non-blank message
+     * @param message of new commit
+     */
+    private static Commit createCommit(String message) {
+        Map<String, String> addStageBlob = getAddStageBlobMap();
+        Map<String, String> removeStageBlob = getRemoveStageBlobMap();
+        checkIfStageEmpty(addStageBlob, removeStageBlob);
+        commit = readCommit();
+        Map<String, String> newBlobMap = commit.getBlobRef();
+        newBlobMap = createBlobMap(newBlobMap, addStageBlob, removeStageBlob);
+        List<String> parents = findParents();
+        return new Commit(message, newBlobMap, parents);
+    }
+
+    /**
+     * Save the new commit created to the tree
+     * @param newCommit to save
+     */
+    private static void saveCommit(Commit newCommit) {
+        newCommit.save();
+        addStage.clear();
+        addStage.saveAddStage();
+        removeStage.clear();
+        removeStage.saveRemoveStage();
+
+    }
+
+    /**
+     * Get a Map of Blob in add stage
+     * @return blob in add stage
+     */
+    private static Map<String, String> getAddStageBlobMap() {
+        Map<String, String> addStageBlobMap = new HashMap<String, String>();
+        addStage = readAddStage();
+        List<Blob> addBlobList = addStage.getBlobList();
+        for (Blob blob : addBlobList) {
+            addStageBlobMap.put(blob.getBlobPath(), blob.getId());
+        }
+        return addStageBlobMap;
+    }
+
+    /**
+     * Get a Map of Blob in remove stage
+     * @return blob in remove stage
+     */
+    private static Map<String, String> getRemoveStageBlobMap() {
+        Map<String, String> removeStageBlobMap = new HashMap<String, String>();
+        removeStage = readRemoveStage();
+        List<Blob> removeBlobList = removeStage.getBlobList();
+        for (Blob blob : removeBlobList) {
+            removeStageBlobMap.put(blob.getBlobPath(), blob.getId());
+        }
+        return removeStageBlobMap;
+    }
+
+    /**
+     * Check if the blob in the stage or not
+     * <p>If no files have been staged, abort. Print the message No changes added to the commit.</p>
+     * @param addStageBlobMap of current add stage
+     * @param removeStageBlobMap of current remove stage
+     */
+    private static void checkIfStageEmpty(Map<String,String> addStageBlobMap,
+                                          Map<String,String> removeStageBlobMap) {
+        if (addStageBlobMap.isEmpty() && removeStageBlobMap.isEmpty()) {
+            System.out.println("No changes added to the commit.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Find parents id of current commits
+     * @return List of parents of current commits
+     */
+    private static List<String> findParents() {
+        List<String> parents = new ArrayList<String>();
+        commit = readCommit();
+        parents.add(commit.getId());
+        return parents;
+    }
+
+    /**
+     * Create blob map for current commits, add all blob in add stage
+     * and remove stage to the copy of blob of current commit
+     *
+     * @param newBlobMap blob map of new commit
+     * @param addBlobMap blob map of add stage
+     * @param removeBlobMap blob map of remove stage
+     */
+    private static Map<String,String> createBlobMap(Map<String,String> newBlobMap,
+                                                    Map<String,String> addBlobMap,
+                                                    Map<String,String> removeBlobMap) {
+        if (!addBlobMap.isEmpty()) {
+            for (String path : addBlobMap.keySet()) {
+                newBlobMap.put(path, addBlobMap.get(path));
+            }
+        }
+
+        if (!removeBlobMap.isEmpty()) {
+            for (String path : removeBlobMap.keySet()) {
+                newBlobMap.put(path, removeBlobMap.get(path));
+            }
+        }
+        return newBlobMap;
+    }
+
+    /**
+     * Save new commit as the head of current branch and update
+     * current Commit and HEAD_FILE
+     * @param newCommit to save
+     */
+    private static void saveHead(Commit newCommit) {
+        commit = newCommit;
+        String currentBranch = readCurrentBranch();
+        File HEADS_FILE = join(HEADS_DIR, currentBranch);
+        writeContents(HEADS_FILE, commit.getId());
+    }
+
+    /**
+     * Get current branch (from HEAD_FILE)
+     * @return current branch
+     */
+    private static String readCurrentBranch() {
+        return readContentsAsString(HEAD_FILE);
+    }
+
+    /**
+     * Implement rm command, remove the target file
+     * @param fileName of target file to remove
+     */
+    public static void rm(String fileName) {
+        File file = getFile(fileName);
+        String filePath = file.getPath();
+        addStage = readAddStage();
+        commit = readCommit();
+
+        if (addStage.contains(filePath)) {
+            addStage.delete(filePath);
+            addStage.saveAddStage();
+        } else if (commit.contains(filePath)){
+            removeStage = readRemoveStage();
+            Blob removeBlob = getBlobFromPath(filePath, commit);
+            removeStage.add(removeBlob);
+            removeStage.saveRemoveStage();
+        } else {
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Get target blob through blob path in the target commit
+     * @param filePath of target blob
+     * @param currCommit target commit
+     */
+    private static Blob getBlobFromPath(String filePath, Commit currCommit) {
+        String blobID = currCommit.getBlobRef().get(filePath);
+        return getBlobFromId(blobID);
+    }
+
+    /**
+     * TODO: Can we move this method to the subclass
+     * Get target blob file through id
+     * @param blobId of target blob
+     * @return target blob
+     */
+    public static Blob getBlobFromId(String blobId) {
+        File BLOB_FILE = join(OBJECT_DIR, blobId);
+        return readObject(BLOB_FILE, Blob.class);
+    }
+
+    /**
+     * Implement log command
+     */
+    public static void log() {
+
+    }
 
 }
