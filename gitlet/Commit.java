@@ -11,8 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static gitlet.Repository.OBJECT_DIR;
-import static gitlet.Utils.join;
-import static gitlet.Utils.writeObject;
+import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -32,10 +31,10 @@ public class Commit implements Serializable {
     private Date currentTime;
     private String timestamp;
     private List<String> parent;
-    private HashMap<String, String> blobRef;
+    private Map<String, String> blobRef;
     private File commitSave;
 
-    public Commit(String message, HashMap<String,String> blobRef, List<String> parent) {
+    public Commit(String message, Map<String,String> blobRef, List<String> parent) {
         this.currentTime = new Date();
         this.message = message;
         this.blobRef = blobRef;
@@ -99,7 +98,19 @@ public class Commit implements Serializable {
      * Get Blob reference implemented by HashMap
      * @return Blob Reference implemented using a hash map
      */
-    public HashMap<String, String> getBlobRef() {
+    public Map<String, String> getBlobRef() {
         return blobRef;
     }
+
+    /**
+     * Find whether the commit contains file with target file path
+     * @param filePath of target file
+     * @return boolean value
+     */
+    public boolean contains(String filePath) {
+        return this.blobRef.containsKey(filePath);
+    }
+
+
+
 }
