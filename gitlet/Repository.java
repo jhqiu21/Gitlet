@@ -537,4 +537,138 @@ public class Repository {
             }
         }
     }
+
+    /**
+     * Implement find command
+     * Prints out the ids of all commits that have the given commit message
+     * If there are multiple such commits, it prints the ids out on separate lines.
+     *
+     * @param message of target commits
+     */
+    public static void find(String message) {
+        List<String> commitList = plainFilenamesIn(OBJECT_DIR);
+        List<String> idList = new ArrayList<String>();
+        for (String id : commitList) {
+            Commit curr = getCommitFromId(id);
+            if (message.equals(curr.getMessage())) {
+                idList.add(id);
+            }
+        }
+
+        if (idList.isEmpty()) {
+            System.out.println("Found no commit with that message.");
+        } else {
+            for (String id : idList) {
+                System.out.println(id);
+            }
+        }
+    }
+
+    /**
+     * Implement status command
+     * Displays what branches currently exist, and marks the current branch with a *.
+     * Also displays what files have been staged for addition or removal.
+     */
+    public static void status() {
+        printBranches();
+        printStagedFiles();
+        printRemovedFiles();
+        printModificationsNotStaged();
+        printUntrackedFiles();
+    }
+
+    /**
+     * Displays all branches and marks the current branch with a '*'
+     */
+    private static void printBranches() {
+        List<String> branchList = plainFilenamesIn(HEADS_DIR);
+        String currentBranch = getCurrBranch();
+        System.out.println("=== Branches ===");
+        System.out.println("*" + currentBranch);
+        if (branchList.size() == 1) {
+            return;
+        }
+        for (String branch : branchList) {
+            if (!branch.equals(currentBranch)) {
+                System.out.println(branch);
+            }
+        }
+        System.out.println();
+    }
+
+    /**
+     * Displays what files have been staged for addition
+     */
+    private static void printStagedFiles() {
+        System.out.println("=== Staged Files ===");
+        addStage = readAddStage();
+        for (Blob blob : addStage.getBlobList()) {
+            System.out.println(blob.getBlobSaveFileName());
+        }
+        System.out.println();
+    }
+
+    /**
+     * Displays what files have been staged for removal
+     */
+    private static void printRemovedFiles() {
+        System.out.println("=== Removed Files ===");
+        removeStage = readRemoveStage();
+        for (Blob blob : removeStage.getBlobList()) {
+            System.out.println(blob.getBlobSaveFileName());
+        }
+        System.out.println();
+    }
+
+    /**
+     * Displays file in the working directory, which is “modified but not staged”
+     *
+     * <p>A file is modified but not staged if it is</p>
+     * - Tracked in the current commit, changed in the working directory, but not staged; or
+     * - Staged for addition, but with different contents than in the working directory; or
+     * - Staged for addition, but deleted in the working directory; or
+     * - Not staged for removal, but tracked in the current commit and deleted from the working directory.
+     */
+    private static void printModificationsNotStaged() {
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        // TODO: Bonus Part
+        System.out.println();
+    }
+
+    /**
+     * Displays files present in the working directory but neither staged for addition nor tracked
+     *
+     */
+    private static void printUntrackedFiles() {
+        System.out.println("=== Untracked Files ===");
+        // TODO: Bonus Part
+        System.out.println();
+    }
+
+    /**
+     * Implement checkout command
+     * Checkout is a kind of general command that can do a few different
+     * things depending on what its arguments are.
+     *
+     * <p>Usages:</p>
+     * <ul>
+     *     <li> java gitlet.Main checkout -- [file name] </li>
+     *     <li> java gitlet.Main checkout [commit id] -- [file name] </li>
+     *     <li> java gitlet.Main checkout [branch name] </li>
+     * </ul>
+     *
+     */
+
+    /**
+     * Case 1: java gitlet.Main checkout -- [file name]
+     * Takes the version of the file as it exists in the head commit and puts it
+     * in the working directory, overwriting the version of the file that’s already
+     * there if there is one. The new version of the file is not staged.
+     *
+     * @param fileName to operate
+     */
+    public static void checkout(String fileName) {
+        commit = readCommit();
+        List<String> fileNameList = commit.get
+    }
 }

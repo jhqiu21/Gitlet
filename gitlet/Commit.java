@@ -111,6 +111,11 @@ public class Commit implements Serializable {
     }
 
     /**
+     * Get a List of blob of current commit
+     * @param 
+     * */
+
+    /**
      * Find whether the commit contains file with target file path
      * @param filePath of target file
      * @return boolean value
