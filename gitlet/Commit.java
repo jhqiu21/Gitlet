@@ -63,6 +63,14 @@ public class Commit implements Serializable {
         return df.format(this.currentTime);
     }
 
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
     /**
      * Each commit is identified by its SHA-1 id, which must include the file (blob)
      * references of its files, parent reference, log message, and commit time.
@@ -111,6 +119,8 @@ public class Commit implements Serializable {
         return this.blobRef.containsKey(filePath);
     }
 
-
+    public List<String> getParentId() {
+        return this.parent;
+    }
 
 }

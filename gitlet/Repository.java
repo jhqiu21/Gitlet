@@ -408,10 +408,133 @@ public class Repository {
     }
 
     /**
-     * Implement log command
+     * Implement log command, print the log of commit tree
      */
     public static void log() {
-
+        commit = readCommit();
+        while (!commit.getParentId().isEmpty()) {
+            if (isMergedCommit(commit)) {
+                printMergedCommit(commit);
+            } else {
+                printCommit(commit);
+            }
+            commit = getCommitFromId(commit.getParentId().get(0));
+        }
+        printCommit(commit);
     }
 
+    /**
+     * Determine whether the commit is a merge commit
+     * a.k.a it has two parents
+     * @param commit to verify
+     * @return boolean value
+     */
+    private static boolean isMergedCommit(Commit commit) {
+        return commit.getParentId().size() == 2;
+    }
+
+    /**
+     * Print info of target commit
+     * @param commit target commit
+     */
+    private static void printCommit(Commit commit) {
+        System.out.println("===");
+        printCommitID(commit);
+        printCommitDate(commit);
+        printCommitMessage(commit);
+    }
+
+    /**
+     * Print info of target merged commit
+     * @param commit target merged commit
+     */
+    private static void printMergedCommit(Commit commit) {
+        System.out.println("===");
+        printCommitID(commit);
+        printMergeMark(commit);
+        printCommitDate(commit);
+        printCommitMessage(commit);
+    }
+
+    /**
+     * Print commit id in log
+     * @param commit to be print in log
+     */
+    private static void printCommitID(Commit commit) {
+        System.out.println("commit " + commit.getId());
+    }
+
+    /**
+     * Print commit date in log
+     * @param commit to be print in log
+     */
+    private static void printCommitDate(Commit commit) {
+        System.out.println("Date: " + commit.getTimestamp());
+    }
+
+    /**
+     * Print commit message in log with a empty line
+     * @param commit to be print in log
+     */
+    private static void printCommitMessage(Commit commit) {
+        System.out.println(commit.getMessage() + "\n");
+    }
+
+    /**
+     * Print merge mark in log, list parents of merged commit consist of
+     * the first seven digits of the first and second parents’ commit ids.
+     * The first parent is the branch you were on when you did the merge;
+     * The second is that of the merged-in branch.
+     *
+     * @param commit to be print in log
+     */
+    private static void printMergeMark(Commit commit) {
+        List<String> parentsList = commit.getParentId();
+        String p1 = parentsList.get(0).substring(0, 7);
+        String p2 = parentsList.get(1).substring(0, 7);
+        System.out.println("Merge: " + p1 + " " + p2);
+    }
+
+    /**
+     * Find target commit through commit id
+     * Note that a convenient feature of real Git is that one can abbreviate
+     * commits with a unique prefix, thus, there will be id whose length is less
+     * than 40, for this situation, we just traverse id of all file and find the file
+     * which has a prefix same with this id
+     *
+     * @param commitId id of target commit
+     * @return target commit
+     */
+    private static Commit getCommitFromId(String commitId) {
+        if (commitId.length() == 40) {
+            File file = join(OBJECT_DIR, commitId);
+            return file.exists()
+                    ? readObject(file, Commit.class)
+                    : null;
+        } else {
+            List<String> idList = plainFilenamesIn(OBJECT_DIR);
+            for (String obj : idList) {
+                if (commitId.equals(obj.substring(0, commitId.length()))) {
+                    File file = join(OBJECT_DIR, obj);
+                    return readObject(file, Commit.class);
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Implement global-log command, list all commit history
+     */
+    public static void global_log() {
+        List<String> commitList = plainFilenamesIn(OBJECT_DIR);
+        for (String id : commitList) {
+            Commit curr = getCommitFromId(id);
+            if (isMergedCommit(curr)) {
+                printMergedCommit(curr);
+            } else {
+                printCommit(curr);
+            }
+        }
+    }
 }
