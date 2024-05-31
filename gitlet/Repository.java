@@ -781,19 +781,141 @@ public class Repository {
     }
 
     /**
-     * TODO
-     *
+     * Puts all files tracked by new commit in the working directory, overwriting
+     * the versions of the files that are already there if they exist.(tracked by both commit)
+     * Delete all files only tracked by current commit
+     * Clear all files in stage
+     * @param newCommit to check out
      */
-    private static void switchToNewCommit(Commit commit) {
-
+    private static void switchToNewCommit(Commit newCommit) {
+        List<String> filesTrackedByCurrentCommit = getFilesTrackedByCurrentCommit(newCommit);
+        List<String> filesTrackedByNewCommit = getFilesTrackedByNewCommit(newCommit);
+        List<String> filesTrackedByBothCommit = getFilesTrackedByBothCommit(newCommit);
+        deleteAllFiles(filesTrackedByCurrentCommit);
+        overwriteFiles(filesTrackedByBothCommit, newCommit);
+        writeFiles(filesTrackedByNewCommit, newCommit);
+        clearStage();
     }
 
     /**
-     * TODO
-     *
+     * Get files that are only tracked in the current commit
+     * @param newCommit to check out
+     * @return list of files
+     */
+    private static List<String> getFilesTrackedByCurrentCommit(Commit newCommit) {
+        List<String> checkoutCommitFile = newCommit.getFileNameList();
+        List<String> currentCommitFile = readCommit().getFileNameList();
+        for (String fileName : checkoutCommitFile) {
+            if (currentCommitFile.contains(fileName)) {
+                currentCommitFile.remove(fileName);
+            }
+        }
+        return currentCommitFile;
+    }
+
+
+    /**
+     * Get files that are only tracked in the checked-out commit
+     * @param newCommit to check out
+     * @return list of files
+     */
+    private static List<String> getFilesTrackedByNewCommit(Commit newCommit) {
+        List<String> checkoutCommitFile = newCommit.getFileNameList();
+        List<String> currentCommitFile = readCommit().getFileNameList();
+        for (String fileName : currentCommitFile) {
+            if (checkoutCommitFile.contains(fileName)) {
+                checkoutCommitFile.remove(fileName);
+            }
+        }
+        return checkoutCommitFile;
+    }
+
+    /**
+     * Any files that are tracked in both current branch and checked-out commit
+     * @param newCommit to check out
+     * @return list of files
+     */
+    private static List<String> getFilesTrackedByBothCommit(Commit newCommit) {
+        List<String> checkoutCommitFile = newCommit.getFileNameList();
+        List<String> currentCommitFile = readCommit().getFileNameList();
+        List<String> unionCommit = new ArrayList<String>();
+        for (String fileName : currentCommitFile) {
+            if (checkoutCommitFile.contains(fileName)) {
+                unionCommit.add(fileName);
+            }
+        }
+        return unionCommit;
+    }
+
+    /**
+     * Delete files tracked by current commit
+     * @param filesToDelete files to be deleted
+     */
+    private static void deleteAllFiles(List<String> filesToDelete) {
+        if (filesToDelete.isEmpty()) {
+            return;
+        }
+        for (String fileName : filesToDelete) {
+            File file = join(CWD, fileName);
+            restrictedDelete(file);
+        }
+    }
+
+    /**
+     * Overwrite all files tracked by both commit and put
+     * the files in the CWD
+     * @param filesToOverwrite files to be over write
+     * @param newCommit to be operated
+     */
+    private static void overwriteFiles(List<String> filesToOverwrite, Commit newCommit) {
+        if (filesToOverwrite.isEmpty()) {
+            return;
+        }
+        for (String fileName : filesToOverwrite) {
+            Blob blob = newCommit.getBlobFromFileName(fileName);
+            putBlobInCWD(blob);
+        }
+    }
+
+    /**
+     * Write all files tracked only by new commit and put them in CWD
+     * check ff a working file is untracked in the current branch and
+     * would be overwritten by the checkout before overwriting
+     * @param filesToWrite files tracked only by new commit
+     * @param newCommit to overwrite
+     */
+    private static void writeFiles(List<String> filesToWrite, Commit newCommit) {
+        if (filesToWrite.isEmpty()) {
+            return;
+        }
+        for (String fileName : filesToWrite) {
+            File file = join(CWD, fileName);
+            if (file.exists()) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+        overwriteFiles(filesToWrite, newCommit);
+    }
+
+    /**
+     * Clear stage area
+     */
+    private static void clearStage() {
+        addStage = readAddStage();
+        addStage.clear();
+        addStage.saveAddStage();
+        removeStage = readRemoveStage();
+        removeStage.clear();
+        removeStage.saveRemoveStage();
+    }
+
+    /**
+     * Set given branch be the current branch (HEAD).
+     * @param branchName given branch name of target branch
      */
     private static void switchToNewBranch(String branchName) {
-
+        writeContents(HEAD_FILE, branchName);
     }
 
     /**
