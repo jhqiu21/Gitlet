@@ -981,6 +981,18 @@ public class Repository {
      * @param commitId of given commit
      */
     public static void reset(String commitId) {
-
+        Commit newCommit = getCommitFromId(commitId);
+        Commit currentCommit = readCommit();
+        if (commitId == null) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        switchToNewCommit(newCommit);
+        File branchFile = join(HEADS_DIR, getCurrBranch());
+        writeContents(branchFile, commitId);
     }
+
+    /**
+     * Implement merge command
+     */
 }
