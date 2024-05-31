@@ -10,12 +10,10 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static gitlet.Repository.OBJECT_DIR;
+import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
  *
  *  @author QIU JINHANG
  */
@@ -63,10 +61,18 @@ public class Commit implements Serializable {
         return df.format(this.currentTime);
     }
 
+    /**
+     * Get time stamp of current commit, display in string format
+     * @return timestamp
+     */
     public String getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * Get message of current commit
+     * @return message
+     */
     public String getMessage() {
         return message;
     }
@@ -112,8 +118,41 @@ public class Commit implements Serializable {
 
     /**
      * Get a List of blob of current commit
-     * @param 
-     * */
+     * @return list of blob
+     */
+    public List<Blob> getBlobList() {
+        List<Blob> blobList = new ArrayList<Blob>();
+        for (String ref : blobRef.values()) {
+            blobList.add(getBlobFromId(ref));
+        }
+        return blobList;
+    }
+
+    /**
+     * Get a List of file name of current commit
+     * @return list of file name
+     */
+    public List<String> getFileNameList() {
+        List<String> fileNameList = new ArrayList<String>();
+        List<Blob> blobList = getBlobList();
+        for (Blob blob : blobList) {
+            fileNameList.add(blob.getFileName());
+        }
+        return fileNameList;
+    }
+
+    /**
+     * Get target blob by file name
+     * @param fileName of target blob
+     * @return target blob
+     */
+    public Blob getBlobFromFileName(String fileName) {
+        File file = join(CWD, fileName);
+        String filePath = file.getPath();
+        String blobId = blobRef.get(filePath);
+        return getBlobFromId(blobId);
+    }
+
 
     /**
      * Find whether the commit contains file with target file path
@@ -124,6 +163,11 @@ public class Commit implements Serializable {
         return this.blobRef.containsKey(filePath);
     }
 
+    /**
+     * Get a list of parent id of this commit, for merged commit, it has
+     * two parents, while others has only one parent
+     * @return list of parents id of this commit
+     * */
     public List<String> getParentId() {
         return this.parent;
     }

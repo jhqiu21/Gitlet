@@ -41,6 +41,10 @@ public class Blob implements Serializable {
         return blobSaveFileName;
     }
 
+    public String getFileName() {
+        return this.blobSaveFileName.getName();
+    }
+
     /**
      * Saves the content of the blob to the designated file.
      * It ensures that any changes made to the blob are persisted and can be retrieved later.

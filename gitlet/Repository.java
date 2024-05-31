@@ -1,5 +1,6 @@
 package gitlet;
 
+import javax.net.ssl.StandardConstants;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,7 +19,7 @@ import static gitlet.Utils.*;
  *
  *
  * .gitlet
- *    |-- objects
+ *    |-- objects: Store commit and blob using hash value
  *    |      |-- commit
  *    |      |-- blob
  *    |-- refs
@@ -603,7 +604,7 @@ public class Repository {
         System.out.println("=== Staged Files ===");
         addStage = readAddStage();
         for (Blob blob : addStage.getBlobList()) {
-            System.out.println(blob.getBlobSaveFileName());
+            System.out.println(blob.getFileName());
         }
         System.out.println();
     }
@@ -615,7 +616,7 @@ public class Repository {
         System.out.println("=== Removed Files ===");
         removeStage = readRemoveStage();
         for (Blob blob : removeStage.getBlobList()) {
-            System.out.println(blob.getBlobSaveFileName());
+            System.out.println(blob.getFileName());
         }
         System.out.println();
     }
@@ -652,15 +653,15 @@ public class Repository {
      *
      * <p>Usages:</p>
      * <ul>
-     *     <li> java gitlet.Main checkout -- [file name] </li>
-     *     <li> java gitlet.Main checkout [commit id] -- [file name] </li>
-     *     <li> java gitlet.Main checkout [branch name] </li>
+     *     <li> checkout -- [file name] </li>
+     *     <li> checkout [commit id] -- [file name] </li>
+     *     <li> checkout [branch name] </li>
      * </ul>
      *
      */
 
     /**
-     * Case 1: java gitlet.Main checkout -- [file name]
+     * Case 1: checkout -- [file name]
      * Takes the version of the file as it exists in the head commit and puts it
      * in the working directory, overwriting the version of the file that’s already
      * there if there is one. The new version of the file is not staged.
@@ -669,6 +670,195 @@ public class Repository {
      */
     public static void checkout(String fileName) {
         commit = readCommit();
-        List<String> fileNameList = commit.get
+        List<String> fileNameList = commit.getFileNameList();
+        if (fileNameList.contains(fileName)) {
+            Blob blob = commit.getBlobFromFileName(fileName);
+            putBlobInCWD(blob);
+        } else {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * write blob to CWD, use writeContents method to write byte array
+     * to the blob file in CWD
+     * @param blob to write
+     */
+    private static void putBlobInCWD(Blob blob) {
+        File file = join(CWD, blob.getFileName());
+        byte[] byteCode = blob.getBytes();
+        writeContents(file, new String(byteCode));
+    }
+
+    /**
+     * Case 2: checkout [commit id] -- [file name]
+     * Takes the version of the file as it exists in the commit with the given id,
+     * and puts it in the working directory, overwriting the version of the file that’s
+     * already there if there is one. The new version of the file is not staged.
+     *
+     * @param id of target file
+     * @param fileName of target file
+     */
+    public static void checkout(String id, String fileName) {
+        commit = getCommitFromId(id);
+        if (commit == null) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        List<String> fileNameList = commit.getFileNameList();
+        if (fileNameList.contains(fileName)) {
+            Blob blob = commit.getBlobFromFileName(fileName);
+            putBlobInCWD(blob);
+        } else {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Case 3: checkout [branch name]
+     * Takes all files in the commit at the head of the given branch,
+     * and puts them in the working directory, overwriting the versions of the files
+     * that are already there if they exist. Also, at the end of this command,
+     * the given branch will now be considered the current branch (HEAD).
+     * Any files that are tracked in the current branch but are not present in the
+     * checked-out branch are deleted. The staging area is cleared,
+     * unless the checked-out branch is the current branch
+     *
+     * <ul>
+     * <li>If a working file is untracked in the current branch and would be overwritten by the checkout,
+     * print There is an untracked file in the way; delete it, or add and commit it first. and exit;</li> TODO
+     * <li>perform this check before doing anything else. Do not change the CWD.</li>
+     * </ul>
+     * @param branch given branch
+     */
+    public static void checkoutInBranch(String branch) {
+        checkBranchExist(branch);
+        checkCurrentBranch(branch);
+        Commit newCommit = getCommitFromBranchName(branch);
+        switchToNewCommit(newCommit);
+        switchToNewBranch(branch);
+    }
+
+    /**
+     * Check if the branch with given branch name exist in HEAD_DIR
+     * If no branch with that name exists, print No such branch exists.
+     *
+     * @param branchName to check
+     */
+    private static void checkBranchExist(String branchName) {
+        List<String> branchList = plainFilenamesIn(HEADS_DIR);
+        if (!branchList.contains(branchName)) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Check if the branch with given branch name is current branch
+     * If that branch is the current branch, print No need to checkout the current branch.
+     *
+     * @param branchName to check
+     */
+    private static void checkCurrentBranch(String branchName) {
+        String currentBranch = readCurrentBranch();
+        if (branchName.equals(currentBranch)) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Get the latest commit of the given branch name
+     * @param branchName of target branch
+     * @return Commit
+     */
+    private static Commit getCommitFromBranchName(String branchName) {
+        File branchNameFile = join(HEADS_DIR, branchName);
+        String id = readContentsAsString(branchNameFile);
+        return getCommitFromId(id);
+    }
+
+    /**
+     * TODO
+     *
+     */
+    private static void switchToNewCommit(Commit commit) {
+
+    }
+
+    /**
+     * TODO
+     *
+     */
+    private static void switchToNewBranch(String branchName) {
+
+    }
+
+    /**
+     * Implement branch command
+     *
+     * Creates a new branch with the given name, and points it at the current head commit.
+     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     * This command does NOT immediately switch to the newly created branch (just as in real Git).
+     * Before you ever call branch, your code should be running with a default branch called “master”.
+     *
+     * @param branchName of new branch to create
+     */
+    public static void branch(String branchName) {
+        List<String> allBranches = plainFilenamesIn(HEADS_DIR);
+        if (allBranches.contains(branchName)) {
+            System.out.println("A branch with that name already exists.");
+            System.exit(0);
+        }
+        File newBranch = join(HEADS_DIR, branchName);
+        writeContents(newBranch, getCurrCommitId());
+    }
+
+    /**
+     * Implement rm-branch command
+     *
+     * <p>Deletes the branch with the given name.</p>
+     * Delete the pointer associated with the branch; it does not mean to delete all commits
+     * that were created under the branch, or anything like that.
+     *
+     * <p>Note that</p>
+     * Use isDictionary Method in Jave File class to check if the brach name file is a
+     * dictionary, if not delete this file in the HEAD_DIR
+     *
+     * @param branchName to be removed
+     */
+    public static void rm_branch(String branchName) {
+        String currentBranch = getCurrBranch();
+        List<String> branchList = plainFilenamesIn(HEADS_DIR);
+        if (branchName.equals(currentBranch)) {
+            System.out.println("Cannot remove the current branch.");
+            System.exit(0);
+        }
+        if (!branchList.contains(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        File file = join(HEADS_DIR, branchName);
+        if (!file.isDirectory()) {
+            file.delete();
+        }
+    }
+
+    /**
+     * Implement reset command
+     *
+     * Checks out all the files tracked by the given commit. Removes tracked files
+     * that are not present in that commit. Also moves the current branch’s head to
+     * that commit node. See the intro for an example of what happens to the head pointer
+     * after using reset. The [commit id] may be abbreviated as for checkout.
+     * The staging area is cleared. The command is essentially checkout of an arbitrary commit
+     * that also changes the current branch head.
+     *
+     * @param commitId of given commit
+     */
+    public static void reset(String commitId) {
+
     }
 }
