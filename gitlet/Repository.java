@@ -1,7 +1,7 @@
 package gitlet;
 
-import javax.net.ssl.StandardConstants;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -64,10 +64,10 @@ public class Repository {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
-        GITLET_DIR.mkdir();
-        OBJECT_DIR.mkdir();
-        REF_DIR.mkdir();
-        HEADS_DIR.mkdir();
+        mkdir(GITLET_DIR);
+        mkdir(OBJECT_DIR);
+        mkdir(REF_DIR);
+        mkdir(HEADS_DIR);
         initCommit();
         initHead();
         initHeadPointer();
@@ -93,15 +93,15 @@ public class Repository {
      * initialize a head pointer
      */
     private static void initHead() {
-        writeObject(HEADS_DIR, "master");
-        writeContents(HEAD_FILE, commit.getId());
+        File HEADS_FILE = join(HEADS_DIR, "master");
+        writeContents(HEADS_FILE, commit.getId());
     }
 
     /**
      * initialize a head pointer to the master branch
      */
     private static void initHeadPointer() {
-        writeObject(HEAD_FILE, "master");
+        writeContents(HEAD_FILE, "master");
     }
 
     /**
@@ -687,7 +687,7 @@ public class Repository {
     private static void putBlobInCWD(Blob blob) {
         File file = join(CWD, blob.getFileName());
         byte[] byteCode = blob.getBytes();
-        writeContents(file, new String(byteCode));
+        writeContents(file, new String(byteCode, StandardCharsets.UTF_8));
     }
 
     /**
@@ -1212,13 +1212,13 @@ public class Repository {
                 String currentContent = "";
                 if (tmpCommit.contains(path)) {
                     Blob currentBlob = getBlobFromId(currentBlobRef.get(path));
-                    currentContent = new String(currentBlob.getBytes());
+                    currentContent = new String(currentBlob.getBytes(), StandardCharsets.UTF_8);
                 }
 
                 String mergeContent = "";
                 if (tmpCommit.contains(path)) {
                     Blob mergeBlob = getBlobFromId(mergeBlobRef.get(path));
-                    mergeContent = new String(mergeBlob.getBytes());
+                    mergeContent = new String(mergeBlob.getBytes(), StandardCharsets.UTF_8);
                 }
 
                 String contents = "<<<<<<< HEAD\n" + currentContent + "=======\n" + mergeContent + ">>>>>>>\n";

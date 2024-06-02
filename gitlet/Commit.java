@@ -1,9 +1,5 @@
 package gitlet;
 
-// TODO: any imports you need here
-
-// import org.graalvm.compiler.core.common.util.Util;
-
 import java.io.File;
 import java.io.Serializable;
 import java.text.DateFormat;
@@ -37,8 +33,8 @@ public class Commit implements Serializable {
         this.message = message;
         this.blobRef = blobRef;
         this.parent = parent;
-        this.timestamp = dateToString(this.currentTime);
-        this.id = this.getId();
+        this.timestamp = generateTimeStamp();
+        this.id = generateId();
         this.commitSave = generateSaveFile();
     }
 
@@ -46,9 +42,9 @@ public class Commit implements Serializable {
         this.currentTime = new Date(0);
         this.parent = new ArrayList<String>();
         this.blobRef = new HashMap<String, String>();
-        this.timestamp = dateToString(this.currentTime);
+        this.timestamp = generateTimeStamp();
         this.message = "init commit";
-        this.id = this.getId();
+        this.id = generateId();
         this.commitSave = generateSaveFile();
     }
 
@@ -56,7 +52,7 @@ public class Commit implements Serializable {
      * Generate date of String Type using DateFormat Class
      * @return date
      */
-    private String dateToString(Date currentTime) {
+    private String generateTimeStamp() {
         DateFormat df = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
         return df.format(this.currentTime);
     }
@@ -82,8 +78,12 @@ public class Commit implements Serializable {
      * references of its files, parent reference, log message, and commit time.
      * @return commit id
      */
+    public String generateId() {
+        return Utils.sha1(generateTimeStamp(), message, parent.toString(), blobRef.toString());
+    }
+
     public String getId() {
-        return Utils.sha1(this.blobRef.toString(), this.parent, this.message, this.timestamp);
+        return id;
     }
 
     /**
