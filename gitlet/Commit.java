@@ -83,7 +83,7 @@ public class Commit implements Serializable {
      * @return commit id
      */
     public String getId() {
-        return Utils.sha1(this.blobRef, this.parent, this.message, this.timestamp);
+        return Utils.sha1(this.blobRef.toString(), this.parent, this.message, this.timestamp);
     }
 
     /**

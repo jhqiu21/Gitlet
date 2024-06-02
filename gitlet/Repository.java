@@ -5,8 +5,10 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-
+import java.io.File;
+import java.io.IOException;
 import static gitlet.Utils.*;
+import static gitlet.gitUtils.*;
 
 // TODO: any imports you need here
 
