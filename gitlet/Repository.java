@@ -1019,7 +1019,7 @@ public class Repository {
 
         /* Get construct new merged commit */
         Map<String,String> currentBlobList = currentCommit.getBlobRef();
-        String message = "Merged " + mergeCommit + " into " + currentCommit;
+        String message = "Merged " + mergeCommit + " into " + currentCommit + ".";
         List<String> currCommitParent = currentCommit.getParentId();
         List<String> mergeCommitParent = mergeCommit.getParentId();
         List<String> parent = new ArrayList<String>();

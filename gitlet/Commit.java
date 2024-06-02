@@ -43,7 +43,7 @@ public class Commit implements Serializable {
         this.parent = new ArrayList<String>();
         this.blobRef = new HashMap<String, String>();
         this.timestamp = generateTimeStamp();
-        this.message = "init commit";
+        this.message = "initial commit";
         this.id = generateId();
         this.commitSave = generateSaveFile();
     }
