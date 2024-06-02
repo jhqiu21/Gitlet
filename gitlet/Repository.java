@@ -234,6 +234,7 @@ public class Repository {
             System.exit(0);
         }
         Commit newCommit = createCommit(message);
+        saveCommit(newCommit);
     }
 
     /**
@@ -261,7 +262,7 @@ public class Repository {
         addStage.saveAddStage();
         removeStage.clear();
         removeStage.saveRemoveStage();
-
+        saveHead(newCommit);
     }
 
     /**

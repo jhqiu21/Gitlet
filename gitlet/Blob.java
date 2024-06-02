@@ -2,7 +2,6 @@ package gitlet;
 
 import java.io.Serializable;
 import java.io.File;
-
 import static gitlet.Repository.OBJECT_DIR;
 import static gitlet.Utils.*;
 
@@ -20,9 +19,9 @@ public class Blob implements Serializable {
     public Blob(File src) {
         this.src = src;
         this.bytes = readContents(src);
-        this.id = sha1(blobPath, bytes);
-        this.blobSaveFileName = join(OBJECT_DIR, id);
         this.blobPath = src.getPath();
+        this.id = generateBlobId();
+        this.blobSaveFileName = join(OBJECT_DIR, id);
     }
 
     public byte[] getBytes() {
@@ -37,12 +36,8 @@ public class Blob implements Serializable {
         return id;
     }
 
-    public File getBlobSaveFileName() {
-        return blobSaveFileName;
-    }
-
     public String getFileName() {
-        return this.blobSaveFileName.getName();
+        return src.getName();
     }
 
     /**
@@ -53,6 +48,9 @@ public class Blob implements Serializable {
         writeObject(blobSaveFileName, this);
     }
 
+    private String generateBlobId() {
+        return sha1(blobPath, bytes);
+    }
 
 }
 

@@ -8,7 +8,8 @@ I definitions.inc
 > commit "added wug"
 <<<
 > log
-===
+===log
+
 ${COMMIT_HEAD}
 added wug
 
