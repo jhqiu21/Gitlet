@@ -129,6 +129,15 @@ public class Commit implements Serializable {
     }
 
     /**
+     * Get a list of blob id
+     * @return blob id list
+     */
+    public List<String> getBlobIdList() {
+        List<String> blobIdList = new ArrayList<String>(blobRef.values());
+        return blobIdList;
+    }
+
+    /**
      * Get a List of file name of current commit
      * @return list of file name
      */

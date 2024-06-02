@@ -4,10 +4,7 @@ import javax.net.ssl.StandardConstants;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -82,7 +79,7 @@ public class Repository {
     }
 
     /**
-     * init and save a commit in the data base
+     * init and save a commit in the database
      */
     private static void initCommit() {
         Commit initcommit = new Commit();
@@ -209,7 +206,7 @@ public class Repository {
      * Gets the current branch name and constructs the file path for the
      * head pointer file of the current branch. Reads the content of the
      * head pointer file (which contains the current commit ID) and returns it.
-     * @return Current Commit Id in current branch
+     * @return Current Commit id in current branch
      */
     private static String getCurrCommitId() {
         String currBranch = getCurrBranch();
@@ -426,7 +423,7 @@ public class Repository {
 
     /**
      * Determine whether the commit is a merge commit
-     * a.k.a it has two parents
+     * a.k.a. it has two parents
      * @param commit to verify
      * @return boolean value
      */
@@ -474,7 +471,7 @@ public class Repository {
     }
 
     /**
-     * Print commit message in log with a empty line
+     * Print commit message in log with an empty line
      * @param commit to be print in log
      */
     private static void printCommitMessage(Commit commit) {
@@ -757,7 +754,7 @@ public class Repository {
 
     /**
      * Check if the branch with given branch name is current branch
-     * If that branch is the current branch, print No need to checkout the current branch.
+     * If that branch is the current branch, print No need to check out the current branch.
      *
      * @param branchName to check
      */
@@ -922,7 +919,7 @@ public class Repository {
      * Implement branch command
      *
      * Creates a new branch with the given name, and points it at the current head commit.
-     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     * A branch is nothing more than a name for a reference (an SHA-1 identifier) to a commit node.
      * This command does NOT immediately switch to the newly created branch (just as in real Git).
      * Before you ever call branch, your code should be running with a default branch called “master”.
      *
@@ -946,7 +943,7 @@ public class Repository {
      * that were created under the branch, or anything like that.
      *
      * <p>Note that</p>
-     * Use isDictionary Method in Jave File class to check if the brach name file is a
+     * Use isDictionary Method in Java File class to check if the branch name file is a
      * dictionary, if not delete this file in the HEAD_DIR
      *
      * @param branchName to be removed
@@ -993,6 +990,393 @@ public class Repository {
     }
 
     /**
-     * Implement merge command
+     * Implement merge command, check the exceptions first and perform
+     * merge operation by invoking mergeToNewCommit method
+     *
+     * <p>Note</p>
+     * We construct a temp commit using current blob list in order to
+     * compare the current blob with given branch commit blob to decide
+     * whether write, overwrite or delete
+     * We also update the message of the temp commit to indicate that it is
+     * a merged commit
+     * This method call mergeToNewCommit method and use check*() method to
+     * filter some failure cases
+     *
+     * @param targetBranch to merge
      */
+    public static void merge(String targetBranch) {
+        checkUncommitedChanges();
+        checkBranchExist(targetBranch);
+        checkMergeWithItself(targetBranch);
+        Commit mergeCommit = getCommitFromBranchName(targetBranch);
+        Commit currentCommit = readCommit();
+        Commit split = getSplitPoint(currentCommit, mergeCommit);
+        checkIfInCurrBranch(split);
+        checkIfInGivenBranch(split, targetBranch);
+
+        /* Get construct new merged commit */
+        Map<String,String> currentBlobList = currentCommit.getBlobRef();
+        String message = "Merged " + mergeCommit + " into " + currentCommit;
+        List<String> currCommitParent = currentCommit.getParentId();
+        List<String> mergeCommitParent = mergeCommit.getParentId();
+        List<String> parent = new ArrayList<String>();
+        parent.addAll(currCommitParent);
+        parent.addAll(mergeCommitParent);
+
+        Commit tmp = new Commit(message, currentBlobList, parent);
+
+        Commit mergedCommit = mergeToNewCommit(split, tmp, mergeCommit);
+
+        saveCommit(mergedCommit);
+    }
+
+    /**
+     * check if there is any files in add/removal stage
+     */
+    private static void checkUncommitedChanges() {
+        addStage = readAddStage();
+        removeStage = readRemoveStage();
+        if (!addStage.isEmpty() || !removeStage.isEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+    }
+
+
+    /**
+     * check if attempting to merge a branch with itself
+     * @param branchName given branch name
+     */
+    private static void checkMergeWithItself(String branchName) {
+        if (getCurrBranch().equals(branchName)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Get split point(merged commit) of two given commit
+     * @param commit_1
+     * @param commit_2
+     * @return split point
+     */
+    private static Commit getSplitPoint(Commit commit_1, Commit commit_2) {
+        Map<String,Integer> cMap_1 = getCommitMap(commit_1, 0);
+        Map<String,Integer> cMap_2 = getCommitMap(commit_2, 0);
+        return getSplitPointFromMap(cMap_1, cMap_2);
+    }
+
+    /**
+     * Find a map of commit of a given commit
+     * Traverse all parents of current commit and put their parents recursively
+     * @param commit to search
+     * @return commit map
+     */
+    private static Map<String,Integer> getCommitMap(Commit commit, int count) {
+        Map<String,Integer> commitMap = new HashMap<String, Integer>();
+        if (commit.getParentId().isEmpty()) {
+            commitMap.put(commit.getId(), count);
+            return commitMap;
+        }
+        commitMap.put(commit.getId(), count);
+        count++;
+        for (String id : commit.getParentId()) {
+            Commit parent = getCommitFromId(id);
+            commitMap.putAll(getCommitMap(parent, count));
+        }
+        return commitMap;
+    }
+
+    /**
+     * Find the split point of given two commit
+     * Traverse two map and find the split point, which is a commit in both
+     * branch and has minimum length when encounter this commit
+     * @param cMap_1 commit map 1
+     * @param cMap_2 commit map 2
+     * @return split point of two map
+     */
+    private static Commit getSplitPointFromMap(Map<String,Integer> cMap_1,
+                                               Map<String,Integer> cMap_2) {
+        int length = Integer.MAX_VALUE;
+        String unionId = "";
+        for (String id : cMap_1.keySet()) {
+            if (cMap_2.containsKey(id) && cMap_2.get(id) < length) {
+                length = cMap_2.get(id);
+                unionId = id;
+            }
+        }
+        return getCommitFromId(unionId);
+    }
+
+    /**
+     * If the split point is same with the head of given branch
+     * Then, the given branch and current branch is the same branch, but
+     * the given branch "left behind" by the current branch
+     * i.e. HEAD is on the left hand side of the given branch
+     * ==============================
+     *   * -- * -- * -- * -- ...
+     *  HEAD     given
+     *           Split
+     * ==============================
+     *
+     * @param split split node of two branch
+     * @param newBranch given branch to merge
+     */
+    private static void checkIfInGivenBranch(Commit split, String newBranch) {
+        if (split.getId().equals(getCommitFromBranchName(newBranch).getId())) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * If the split point is same with the HEAD point
+     * Then, the current and given branch is the same branch but
+     * the current branch is "left behind" by the given branch
+     * i.e. the head of given branch is on the left hand side of current branch
+     * ==============================
+     *   * -- * -- * -- * -- ...
+     * given      HEAD
+     *           Split
+     * ==============================
+     *
+     * @param split split node of two branch
+     */
+    private static void checkIfInCurrBranch(Commit split) {
+        if (split.getId().equals(readCommit().getId())) {
+            System.out.println("Current branch fast-forwarded.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Merge Files to the given commit.
+     *
+     * @param split split point of two branch
+     * @param tmpCommit new commit contains blobs of current commit
+     * @param mergeCommit commit of the given branch to merge
+     *
+     * @return commit to be Merged Commit in the branch
+     */
+    private static Commit mergeToNewCommit(Commit split, Commit tmpCommit, Commit mergeCommit) {
+        List<String> allFiles = getAllFiles(split, tmpCommit, mergeCommit);
+        List<String> filesToWrite = getWriteFiles(split, tmpCommit, mergeCommit);
+        List<String> filesToOverWrite = getOverWriteFiles(split, tmpCommit, mergeCommit);
+        List<String> filesToDelete = getDeleteFiles(split, tmpCommit, mergeCommit);
+        writeFiles(getFileNameFromBlobId(filesToWrite), mergeCommit);
+        overwriteFiles(getFileNameFromBlobId(filesToOverWrite), mergeCommit);
+        deleteAllFiles(getFileNameFromBlobId(filesToDelete));
+        checkIfConflict(allFiles, split, tmpCommit, mergeCommit);
+        return getMergedCommit(tmpCommit, filesToWrite, filesToOverWrite, filesToDelete);
+    }
+
+    /**
+     * check if the commits are "conflict"
+     *
+     * <p>Note that</p>
+     * Any files modified in different ways in the current and given branches are in conflict.
+     * “Modified in different ways” can mean that
+     * the contents of both are changed and different from other,
+     * or the contents of one are changed and the other file is deleted,
+     * or the file was absent at the split point and has different contents in the given and current branches.
+     * In this case, replace the contents of the conflicted file with
+     *
+     * @param allFiles file list
+     * @param split split point of two branch
+     * @param tmpCommit new commit contains blobs of current commit
+     * @param mergeCommit commit of the given branch to merge
+     */
+    private static void checkIfConflict(List<String> allFiles,
+                                        Commit split, Commit tmpCommit, Commit mergeCommit) {
+        boolean isConflict = false;
+        Map<String,String> splitBlobRef = split.getBlobRef();
+        Map<String,String> currentBlobRef = tmpCommit.getBlobRef();
+        Map<String,String> mergeBlobRef = mergeCommit.getBlobRef();
+
+        for (String blobId : allFiles) {
+            String path = getBlobFromId(blobId).getBlobPath();
+            boolean sc = splitBlobRef.containsKey(path);
+            boolean cc = currentBlobRef.containsKey(path);
+            boolean mc = mergeBlobRef.containsKey(path);
+            if ((sc && cc && !splitBlobRef.get(path).equals(currentBlobRef.get(path))) ||
+                    (sc && mc && !splitBlobRef.get(path).equals(currentBlobRef.get(path))) ||
+                    (cc && mc && !currentBlobRef.get(path).equals(mergeBlobRef.get(path))) ||
+                    (sc && cc && mc &&
+                            (!splitBlobRef.get(path).equals(currentBlobRef.get(path))) &&
+                            (!currentBlobRef.get(path).equals(mergeBlobRef.get(path))) &&
+                            (!splitBlobRef.get(path).equals(mergeBlobRef.get(path))))) {
+
+                isConflict = true;
+                String currentContent = "";
+                if (tmpCommit.contains(path)) {
+                    Blob currentBlob = getBlobFromId(currentBlobRef.get(path));
+                    currentContent = new String(currentBlob.getBytes());
+                }
+
+                String mergeContent = "";
+                if (tmpCommit.contains(path)) {
+                    Blob mergeBlob = getBlobFromId(mergeBlobRef.get(path));
+                    mergeContent = new String(mergeBlob.getBytes());
+                }
+
+                String contents = "<<<<<<< HEAD\n" + currentContent + "=======\n" + mergeContent + ">>>>>>>\n";
+                String fileName = getBlobFromId(blobId).getFileName();
+                File conflictFile = join(CWD, fileName);
+                writeContents(conflictFile, contents);
+            }
+
+        }
+
+
+
+
+
+    }
+
+    /**
+     * Get all files from split node, master branch commit and given branch commit
+     * Helper Method to classify the files into different kinds of operations
+     *
+     * <p>Note that</p>
+     * Blobs are content addressable, hence we're simply using blob id to keep track
+     * Implement a hash set to make sure every file only appears once in list
+     *
+     * @param split Split point
+     * @param tmpCommit tempo commit construct using current blob list
+     * @param mergeCommit HEAD of given branch
+     * @return List of files
+     */
+    private static List<String> getAllFiles(Commit split, Commit tmpCommit, Commit mergeCommit) {
+        List<String> allFiles = new ArrayList<String>();
+        allFiles.addAll(split.getBlobIdList());
+        allFiles.addAll(tmpCommit.getBlobIdList());
+        allFiles.addAll(mergeCommit.getBlobIdList());
+        Set<String> tmp = new HashSet<String>(allFiles);
+        allFiles.clear();
+        allFiles.addAll(tmp);
+        return allFiles;
+    }
+
+    /**
+     * Get a list of files that only appear in merge commit
+     * But do not exist in the current commit and split point
+     * These files are supposed to write in the merged commit
+     *
+     * @param split Split point
+     * @param tmpCommit tempo commit construct using current blob list
+     * @param mergeCommit HEAD of given branch
+     * @return List of files need to write into merged commit
+     */
+    private static List<String> getWriteFiles(Commit split, Commit tmpCommit, Commit mergeCommit) {
+        Map<String,String> splitBlobRef = split.getBlobRef();
+        Map<String,String> currentBlobRef = tmpCommit.getBlobRef();
+        Map<String,String> mergeBlobRef = mergeCommit.getBlobRef();
+        List<String> filesToWrite = new ArrayList<String>();
+        for (String path : mergeBlobRef.keySet()) {
+            if (!splitBlobRef.containsKey(path) && !currentBlobRef.containsKey(path)) {
+                filesToWrite.add(mergeBlobRef.get(path));
+            }
+        }
+        return filesToWrite;
+    }
+
+    /**
+     * Get a list of files that only appear in merge commit current commit and split point
+     * But the version of these files in given branch are different with those in
+     * current branch and split point
+     * These files are supposed to be overwritten in the merged commit
+     *
+     * @param split Split point
+     * @param tmpCommit tempo commit construct using current blob list
+     * @param mergeCommit HEAD of given branch
+     * @return List of files need to be overwritten in merged commit
+     */
+    private static List<String> getOverWriteFiles(Commit split, Commit tmpCommit, Commit mergeCommit) {
+        Map<String,String> splitBlobRef = split.getBlobRef();
+        Map<String,String> currentBlobRef = tmpCommit.getBlobRef();
+        Map<String,String> mergeBlobRef = mergeCommit.getBlobRef();
+        List<String> filesToOverWrite = new ArrayList<String>();
+        for (String path : splitBlobRef.keySet()) {
+            if (currentBlobRef.containsKey(path) && mergeBlobRef.containsKey(path)) {
+                if (splitBlobRef.get(path).equals(currentBlobRef.get(path)) &&
+                    !splitBlobRef.get(path).equals(mergeBlobRef.get(path))) {
+                    filesToOverWrite.add(splitBlobRef.get(path));
+                }
+            }
+        }
+        return filesToOverWrite;
+    }
+
+    /**
+     * Get a list of files that only appear in current commit and split point
+     * But the version of these files do not exist in given branch
+     * These files are supposed to be deleted in the merged commit
+     *
+     * @param split Split point
+     * @param tmpCommit tempo commit construct using current blob list
+     * @param mergeCommit HEAD of given branch
+     * @return List of files need to be deleted in merged commit
+     */
+    private static List<String> getDeleteFiles(Commit split, Commit tmpCommit, Commit mergeCommit) {
+        Map<String,String> splitBlobRef = split.getBlobRef();
+        Map<String,String> currentBlobRef = tmpCommit.getBlobRef();
+        Map<String,String> mergeBlobRef = mergeCommit.getBlobRef();
+        List<String> filesToDelete = new ArrayList<String>();
+        for (String path : splitBlobRef.keySet()) {
+            if (currentBlobRef.containsKey(path) && !mergeBlobRef.containsKey(path)) {
+                filesToDelete.add(currentBlobRef.get(path));
+            }
+        }
+        return filesToDelete;
+    }
+
+    /**
+     * Get a list of files bond with co-respondent blob
+     *
+     * @param blobIdList given blob id list
+     * @return a list of files
+     */
+    private static List<String> getFileNameFromBlobId(List<String> blobIdList) {
+        List<String> fileName = new ArrayList<String>();
+        for (String id : blobIdList) {
+            Blob blob = getBlobFromId(id);
+            fileName.add(blob.getFileName());
+        }
+        return fileName;
+    }
+
+    /**
+     * Construct final merged commit after updating its blobs
+     * @param mergedCommit temp commit construct before
+     * @param writeFiles list of files to be written in the temp blob list
+     * @param overwriteFiles list of files to be overwritten in the temp blob list
+     * @param deleteFiles list of files to be deleted in the temp blob list
+     * @return merged commit
+     */
+    private static Commit getMergedCommit(Commit mergedCommit,
+                                          List<String> writeFiles,
+                                          List<String> overwriteFiles,
+                                          List<String> deleteFiles) {
+        Map<String,String> mergedFiles = mergedCommit.getBlobRef();
+        if (!writeFiles.isEmpty()) {
+            for (String id : writeFiles) {
+                mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
+            }
+        }
+
+        if (!overwriteFiles.isEmpty()) {
+            for (String id : overwriteFiles) {
+                mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
+            }
+        }
+
+        if (!deleteFiles.isEmpty()) {
+            for (String id : deleteFiles) {
+                mergedFiles.remove(getBlobFromId(id).getBlobPath());
+            }
+        }
+
+        return new Commit(mergedCommit.getMessage(), mergedFiles, mergedCommit.getParentId());
+    }
+
 }
