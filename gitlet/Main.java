@@ -1,7 +1,4 @@
 package gitlet;
-import java.io.File;
-import static gitlet.Utils.*;
-import java.util.*;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author QIU JINHANG
@@ -14,7 +11,7 @@ public class Main {
      */
     public static void main(String[] args) {
         /**
-         * If a user doesn’t input any arguments, print
+         * If a user does not input any arguments, print
          * error message and exit
          */
         if (args.length == 0) {
@@ -23,7 +20,7 @@ public class Main {
         }
 
         String firstArg = args[0];
-        switch(firstArg) {
+        switch (firstArg) {
             /* `init` command */
             case "init":
                 isVaildCMD(args, 1);
@@ -121,7 +118,6 @@ public class Main {
                 Repository.checkInit();
                 Repository.merge(args[1]);
                 break;
-
             default:
                 /**
                  * If a user inputs a command that doesn’t exist,
