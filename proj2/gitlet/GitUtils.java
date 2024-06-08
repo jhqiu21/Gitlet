@@ -2,7 +2,7 @@ package gitlet;
 
 import java.io.File;
 
-public class gitUtils {
+public class GitUtils {
 
     /*
      * Create a directory from the File object.

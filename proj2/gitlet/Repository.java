@@ -1,12 +1,11 @@
 package gitlet;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
 import static gitlet.Utils.*;
-import static gitlet.gitUtils.*;
+import static gitlet.GitUtils.*;
 
 /** Represents a gitlet repository.
  *
@@ -524,7 +523,7 @@ public class Repository {
     /**
      * Implement global-log command, list all commit history
      */
-    public static void global_log() {
+    public static void globalLog() {
         List<String> commitList = plainFilenamesIn(OBJECT_DIR);
         for (String id : commitList) {
             try {
@@ -964,7 +963,7 @@ public class Repository {
      *
      * @param branchName to be removed
      */
-    public static void rm_branch(String branchName) {
+    public static void rmBranch(String branchName) {
         String currentBranch = getCurrBranch();
         List<String> branchList = plainFilenamesIn(HEADS_DIR);
         if (branchName.equals(currentBranch)) {
@@ -1024,6 +1023,7 @@ public class Repository {
         checkUncommitedChanges();
         checkTargetBranch(targetBranch);
         checkMergeWithItself(targetBranch);
+        String currentBranch = getCurrBranch();
         Commit mergeCommit = getCommitFromBranchName(targetBranch);
         Commit currentCommit = readCommit();
         Commit split = getSplitPoint(currentCommit, mergeCommit);
@@ -1032,13 +1032,10 @@ public class Repository {
 
         /* Get construct new merged commit */
         Map<String, String> currentBlobList = currentCommit.getBlobRef();
-        String message = "Merged " + mergeCommit + " into " + currentCommit + ".";
-        List<String> currCommitParent = currentCommit.getParentId();
-        List<String> mergeCommitParent = mergeCommit.getParentId();
-        List<String> parent = new ArrayList<String>();
-        parent.addAll(currCommitParent);
-        parent.addAll(mergeCommitParent);
-
+        String message = "Merged " + targetBranch + " into " + currentCommit + ".";
+        String currCommitParent = getCommitFromBranchName(currentBranch).getId();
+        String mergeCommitParent = getCommitFromBranchName(targetBranch).getId();
+        List<String> parent = new ArrayList<String>(List.of(currCommitParent, mergeCommitParent));
         Commit tmp = new Commit(message, currentBlobList, parent);
 
         Commit mergedCommit = mergeToNewCommit(split, tmp, mergeCommit);
@@ -1248,8 +1245,8 @@ public class Repository {
                 File conflictFile = join(CWD, fileName);
                 writeContents(conflictFile, contents);
             }
-
         }
+
         if (isConflict) {
             System.out.println("Encountered a merge conflict.");
         }

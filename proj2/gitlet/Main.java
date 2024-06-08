@@ -55,7 +55,7 @@ public class Main {
             case "global-log":
                 isVaildCMD(args, 1);
                 Repository.checkInit();
-                Repository.global_log();
+                Repository.globalLog();
                 break;
             /* `find [commit message]` command */
             case "find":
@@ -105,7 +105,7 @@ public class Main {
             case "rm-branch":
                 isVaildCMD(args, 2);
                 Repository.checkInit();
-                Repository.rm_branch(args[1]);
+                Repository.rmBranch(args[1]);
                 break;
             /* `reset [commit id]` command */
             case "reset":
