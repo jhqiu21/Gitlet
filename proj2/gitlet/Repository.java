@@ -1024,15 +1024,15 @@ public class Repository {
         checkTargetBranch(targetBranch);
         checkMergeWithItself(targetBranch);
         String currentBranch = getCurrBranch();
-        Commit mergeCommit = getCommitFromBranchName(targetBranch);
         Commit currentCommit = readCommit();
+        Commit mergeCommit = getCommitFromBranchName(targetBranch);
         Commit split = getSplitPoint(currentCommit, mergeCommit);
         checkIfInCurrBranch(split);
         checkIfInGivenBranch(split, targetBranch);
 
         /* Get construct new merged commit */
         Map<String, String> currentBlobList = currentCommit.getBlobRef();
-        String message = "Merged " + targetBranch + " into " + currentCommit + ".";
+        String message = "Merged " + targetBranch + " into " + currentBranch + ".";
         String currCommitParent = getCommitFromBranchName(currentBranch).getId();
         String mergeCommitParent = getCommitFromBranchName(targetBranch).getId();
         List<String> parent = new ArrayList<String>(List.of(currCommitParent, mergeCommitParent));
@@ -1183,8 +1183,8 @@ public class Repository {
         List<String> filesToWrite = getWriteFiles(split, tmpCommit, mergeCommit);
         List<String> filesToOverWrite = getOverWriteFiles(split, tmpCommit, mergeCommit);
         List<String> filesToDelete = getDeleteFiles(split, tmpCommit, mergeCommit);
-        writeFiles(getFileNameFromBlobId(filesToWrite), mergeCommit);
         overwriteFiles(getFileNameFromBlobId(filesToOverWrite), mergeCommit);
+        writeFiles(getFileNameFromBlobId(filesToWrite), mergeCommit);
         deleteAllFiles(getFileNameFromBlobId(filesToDelete));
         checkIfConflict(allFiles, split, tmpCommit, mergeCommit);
         return getMergedCommit(tmpCommit, filesToWrite, filesToOverWrite, filesToDelete);
@@ -1228,13 +1228,13 @@ public class Repository {
                         && (!splitBlobRef.get(path).equals(mergeBlobRef.get(path))))) {
                 isConflict = true;
                 String currentContent = "";
-                if (tmpCommit.contains(path)) {
+                if (currentBlobRef.containsKey(path)) {
                     Blob currentBlob = getBlobFromId(currentBlobRef.get(path));
                     currentContent = new String(currentBlob.getBytes(), StandardCharsets.UTF_8);
                 }
 
                 String mergeContent = "";
-                if (tmpCommit.contains(path)) {
+                if (mergeBlobRef.containsKey(path)) {
                     Blob mergeBlob = getBlobFromId(mergeBlobRef.get(path));
                     mergeContent = new String(mergeBlob.getBytes(), StandardCharsets.UTF_8);
                 }
@@ -1320,7 +1320,7 @@ public class Repository {
             if (currentBlobRef.containsKey(path) && mergeBlobRef.containsKey(path)) {
                 if (splitBlobRef.get(path).equals(currentBlobRef.get(path))
                         && !splitBlobRef.get(path).equals(mergeBlobRef.get(path))) {
-                    filesToOverWrite.add(splitBlobRef.get(path));
+                    filesToOverWrite.add(mergeBlobRef.get(path));
                 }
             }
         }
@@ -1379,11 +1379,6 @@ public class Repository {
                                           List<String> overwriteFiles,
                                           List<String> deleteFiles) {
         Map<String, String> mergedFiles = mergedCommit.getBlobRef();
-        if (!writeFiles.isEmpty()) {
-            for (String id : writeFiles) {
-                mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
-            }
-        }
 
         if (!overwriteFiles.isEmpty()) {
             for (String id : overwriteFiles) {
@@ -1391,8 +1386,14 @@ public class Repository {
             }
         }
 
+        if (!writeFiles.isEmpty()) {
+            for (String id : writeFiles) {
+                mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
+            }
+        }
+
         if (!deleteFiles.isEmpty()) {
-            for (String id : deleteFiles) {
+            for (String id : overwriteFiles) {
                 mergedFiles.remove(getBlobFromId(id).getBlobPath());
             }
         }
