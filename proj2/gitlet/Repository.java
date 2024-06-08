@@ -2,11 +2,8 @@ package gitlet;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.io.File;
-import java.io.IOException;
 import static gitlet.Utils.*;
 import static gitlet.gitUtils.*;
 
@@ -154,18 +151,20 @@ public class Repository {
         addStage = readAddStage();
         removeStage = readRemoveStage();
         commit = readCommit();
-        if (!commit.getBlobRef().containsKey(blob.getBlobPath()) || !removeStage.containsBlob(blob)) {
-            if (!addStage.containsBlob(blob) && !removeStage.containsBlob(blob)) {
-                blob.save();
+        if (!commit.getBlobRef().containsValue(blob.getId()) || removeStage.containsBlob(blob)) {
+            if (!addStage.containsBlob(blob)) {
+                if (!removeStage.containsBlob(blob)) {
+                    blob.save();
+                    if (addStage.containsFilePath(blob.getBlobPath())) {
+                        addStage.delete(blob);
+                    }
+                    addStage.add(blob);
+                    addStage.saveAddStage();
+                } else {
+                    removeStage.delete(blob);
+                    removeStage.saveRemoveStage();
+                }
             }
-            if (addStage.containsFilePath(blob.getBlobPath())) {
-                addStage.delete(blob);
-            }
-            addStage.add(blob);
-            addStage.saveAddStage();
-        } else {
-            removeStage.delete(blob);
-            removeStage.saveRemoveStage();
         }
     }
 
@@ -299,8 +298,8 @@ public class Repository {
      * @param addStageBlobMap of current add stage
      * @param removeStageBlobMap of current remove stage
      */
-    private static void checkIfStageEmpty(Map<String,String> addStageBlobMap,
-                                          Map<String,String> removeStageBlobMap) {
+    private static void checkIfStageEmpty(Map<String, String> addStageBlobMap,
+                                          Map<String, String> removeStageBlobMap) {
         if (addStageBlobMap.isEmpty() && removeStageBlobMap.isEmpty()) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
@@ -326,9 +325,9 @@ public class Repository {
      * @param addBlobMap blob map of add stage
      * @param removeBlobMap blob map of remove stage
      */
-    private static Map<String,String> createBlobMap(Map<String,String> newBlobMap,
-                                                    Map<String,String> addBlobMap,
-                                                    Map<String,String> removeBlobMap) {
+    private static Map<String,String> createBlobMap(Map<String, String> newBlobMap,
+                                                    Map<String, String> addBlobMap,
+                                                    Map<String, String> removeBlobMap) {
         if (!addBlobMap.isEmpty()) {
             for (String path : addBlobMap.keySet()) {
                 newBlobMap.put(path, addBlobMap.get(path));
@@ -381,6 +380,7 @@ public class Repository {
             Blob removeBlob = getBlobFromPath(filePath, commit);
             removeStage.add(removeBlob);
             removeStage.saveRemoveStage();
+            deleteFile(file);
         } else {
             System.out.println("No reason to remove the file.");
             System.exit(0);
@@ -594,12 +594,11 @@ public class Repository {
         String currentBranch = getCurrBranch();
         System.out.println("=== Branches ===");
         System.out.println("*" + currentBranch);
-        if (branchList.size() == 1) {
-            return;
-        }
-        for (String branch : branchList) {
-            if (!branch.equals(currentBranch)) {
-                System.out.println(branch);
+        if (branchList.size() > 1) {
+            for (String branch : branchList) {
+                if (!branch.equals(currentBranch)) {
+                    System.out.println(branch);
+                }
             }
         }
         System.out.println();
@@ -1017,7 +1016,7 @@ public class Repository {
      */
     public static void merge(String targetBranch) {
         checkUncommitedChanges();
-        checkBranchExist(targetBranch);
+        checkTargetBranch(targetBranch);
         checkMergeWithItself(targetBranch);
         Commit mergeCommit = getCommitFromBranchName(targetBranch);
         Commit currentCommit = readCommit();
@@ -1047,12 +1046,19 @@ public class Repository {
     private static void checkUncommitedChanges() {
         addStage = readAddStage();
         removeStage = readRemoveStage();
-        if (!addStage.isEmpty() || !removeStage.isEmpty()) {
+        if (!(addStage.isEmpty() && removeStage.isEmpty())) {
             System.out.println("You have uncommitted changes.");
             System.exit(0);
         }
     }
 
+    private static void checkTargetBranch(String branchName) {
+        List<String> branchList = plainFilenamesIn(HEADS_DIR);
+        if (!branchList.contains(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+    }
 
     /**
      * check if attempting to merge a branch with itself
