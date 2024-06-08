@@ -530,11 +530,15 @@ public class Repository {
     public static void global_log() {
         List<String> commitList = plainFilenamesIn(OBJECT_DIR);
         for (String id : commitList) {
-            Commit curr = getCommitFromId(id);
-            if (isMergedCommit(curr)) {
-                printMergedCommit(curr);
-            } else {
-                printCommit(curr);
+            try {
+                Commit curr = getCommitFromId(id);
+                if (isMergedCommit(curr)) {
+                    printMergedCommit(curr);
+                } else {
+                    printCommit(curr);
+                }
+            } catch (Exception e) {
+
             }
         }
     }
@@ -550,9 +554,13 @@ public class Repository {
         List<String> commitList = plainFilenamesIn(OBJECT_DIR);
         List<String> idList = new ArrayList<String>();
         for (String id : commitList) {
-            Commit curr = getCommitFromId(id);
-            if (message.equals(curr.getMessage())) {
-                idList.add(id);
+            try {
+                Commit curr = getCommitFromId(id);
+                if (message.equals(curr.getMessage())) {
+                    idList.add(id);
+                }
+            } catch (Exception e) {
+
             }
         }
 
@@ -982,11 +990,11 @@ public class Repository {
      */
     public static void reset(String commitId) {
         Commit newCommit = getCommitFromId(commitId);
-        Commit currentCommit = readCommit();
-        if (commitId == null) {
+        if (newCommit == null) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
+        Commit currentCommit = readCommit();
         switchToNewCommit(newCommit);
         File branchFile = join(HEADS_DIR, getCurrBranch());
         writeContents(branchFile, commitId);
@@ -1229,11 +1237,9 @@ public class Repository {
             }
 
         }
-
-
-
-
-
+        if (isConflict) {
+            System.out.println("Encountered a merge conflict.");
+        }
     }
 
     /**
