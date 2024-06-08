@@ -28,7 +28,7 @@ public class Commit implements Serializable {
     private Map<String, String> blobRef;
     private File commitSave;
 
-    public Commit(String message, Map<String,String> blobRef, List<String> parent) {
+    public Commit(String message, Map<String, String> blobRef, List<String> parent) {
         this.currentTime = new Date();
         this.message = message;
         this.blobRef = blobRef;
