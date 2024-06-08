@@ -105,8 +105,8 @@ public class Stage implements Serializable {
      * @return target blob
      */
     public static Blob getBlobByID(String id) {
-        File BLOB_FILE = join(OBJECT_DIR, id);
-        return readObject(BLOB_FILE, Blob.class);
+        File blobFile = join(OBJECT_DIR, id);
+        return readObject(blobFile, Blob.class);
     }
 
     /**

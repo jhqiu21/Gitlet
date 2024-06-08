@@ -55,8 +55,8 @@ public class Repository {
     /* init command */
     public static void init() {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system " +
-                    "already exists in the current directory.");
+            System.out.println("A Gitlet version-control system "
+                    + "already exists in the current directory.");
             System.exit(0);
         }
         mkdir(GITLET_DIR);
@@ -558,8 +558,11 @@ public class Repository {
                 if (message.equals(curr.getMessage())) {
                     idList.add(id);
                 }
-            } catch (Exception e) {
-
+            } catch (IllegalArgumentException e) {
+                //System.out.println(e.getMessage());
+                //System.exit(0);
+            } catch (NullPointerException e) {
+                System.out.println(e.getMessage());
             }
         }
 
@@ -899,8 +902,8 @@ public class Repository {
         for (String fileName : filesToWrite) {
             File file = join(CWD, fileName);
             if (file.exists()) {
-                System.out.println("There is an untracked file in the way; " +
-                        "delete it, or add and commit it first.");
+                System.out.println("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
                 System.exit(0);
             }
         }
@@ -1081,9 +1084,9 @@ public class Repository {
      * @return split point
      */
     private static Commit getSplitPoint(Commit commit1, Commit commit2) {
-        Map<String, Integer> cMap1 = getCommitMap(commit1, 0);
-        Map<String, Integer> cMap2 = getCommitMap(commit2, 0);
-        return getSplitPointFromMap(cMap1, cMap2);
+        Map<String, Integer> commitMap1 = getCommitMap(commit1, 0);
+        Map<String, Integer> commitMap2 = getCommitMap(commit2, 0);
+        return getSplitPointFromMap(commitMap1, commitMap2);
     }
 
     /**
@@ -1111,17 +1114,17 @@ public class Repository {
      * Find the split point of given two commit
      * Traverse two map and find the split point, which is a commit in both
      * branch and has minimum length when encounter this commit
-     * @param cMap_1 commit map 1
-     * @param cMap_2 commit map 2
+     * @param commitMap1 commit map 1
+     * @param commitMap2 commit map 2
      * @return split point of two map
      */
-    private static Commit getSplitPointFromMap(Map<String, Integer> cMap_1,
-                                               Map<String, Integer> cMap_2) {
+    private static Commit getSplitPointFromMap(Map<String, Integer> commitMap1,
+                                               Map<String, Integer> commitMap2) {
         int length = Integer.MAX_VALUE;
         String unionId = "";
-        for (String id : cMap_1.keySet()) {
-            if (cMap_2.containsKey(id) && cMap_2.get(id) < length) {
-                length = cMap_2.get(id);
+        for (String id : commitMap1.keySet()) {
+            if (commitMap2.containsKey(id) && commitMap2.get(id) < length) {
+                length = commitMap2.get(id);
                 unionId = id;
             }
         }
@@ -1220,7 +1223,7 @@ public class Repository {
             boolean cc = currentBlobRef.containsKey(path);
             boolean mc = mergeBlobRef.containsKey(path);
             if ((sc && cc && !splitBlobRef.get(path).equals(currentBlobRef.get(path)))
-                    || (sc && mc && !splitBlobRef.get(path).equals(currentBlobRef.get(path)))
+                    || (sc && mc && !splitBlobRef.get(path).equals(mergeBlobRef.get(path)))
                     || (cc && mc && !currentBlobRef.get(path).equals(mergeBlobRef.get(path)))
                     || (sc && cc && mc
                         && (!splitBlobRef.get(path).equals(currentBlobRef.get(path)))
@@ -1318,8 +1321,8 @@ public class Repository {
         List<String> filesToOverWrite = new ArrayList<String>();
         for (String path : splitBlobRef.keySet()) {
             if (currentBlobRef.containsKey(path) && mergeBlobRef.containsKey(path)) {
-                if (splitBlobRef.get(path).equals(currentBlobRef.get(path)) &&
-                    !splitBlobRef.get(path).equals(mergeBlobRef.get(path))) {
+                if (splitBlobRef.get(path).equals(currentBlobRef.get(path))
+                        && !splitBlobRef.get(path).equals(mergeBlobRef.get(path))) {
                     filesToOverWrite.add(splitBlobRef.get(path));
                 }
             }
@@ -1378,7 +1381,7 @@ public class Repository {
                                           List<String> writeFiles,
                                           List<String> overwriteFiles,
                                           List<String> deleteFiles) {
-        Map<String,String> mergedFiles = mergedCommit.getBlobRef();
+        Map<String, String> mergedFiles = mergedCommit.getBlobRef();
         if (!writeFiles.isEmpty()) {
             for (String id : writeFiles) {
                 mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
