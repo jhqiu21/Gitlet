@@ -1024,14 +1024,14 @@ public class Repository {
         checkTargetBranch(targetBranch);
         checkMergeWithItself(targetBranch);
         String currentBranch = getCurrBranch();
-        Commit currentCommit = readCommit();
+        commit = readCommit();
         Commit mergeCommit = getCommitFromBranchName(targetBranch);
-        Commit split = getSplitPoint(currentCommit, mergeCommit);
+        Commit split = getSplitPoint(commit, mergeCommit);
         checkIfInCurrBranch(split);
         checkIfInGivenBranch(split, targetBranch);
 
         /* Get construct new merged commit */
-        Map<String, String> currentBlobList = currentCommit.getBlobRef();
+        Map<String, String> currentBlobList = commit.getBlobRef();
         String message = "Merged " + targetBranch + " into " + currentBranch + ".";
         String currCommitParent = getCommitFromBranchName(currentBranch).getId();
         String mergeCommitParent = getCommitFromBranchName(targetBranch).getId();
@@ -1292,7 +1292,7 @@ public class Repository {
         Map<String, String> mergeBlobRef = mergeCommit.getBlobRef();
         List<String> filesToWrite = new ArrayList<String>();
         for (String path : mergeBlobRef.keySet()) {
-            if (!splitBlobRef.containsKey(path) && !currentBlobRef.containsKey(path)) {
+            if ((!splitBlobRef.containsKey(path)) && (!currentBlobRef.containsKey(path))) {
                 filesToWrite.add(mergeBlobRef.get(path));
             }
         }
