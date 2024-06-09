@@ -1163,7 +1163,7 @@ public class Repository {
      * @param split split node of two branch
      */
     private static void checkIfInCurrBranch(Commit split) {
-        if (split.getId().equals(readCommit().getId())) {
+        if (split.getId().equals(commit.getId())) {
             System.out.println("Current branch fast-forwarded.");
             System.exit(0);
         }
