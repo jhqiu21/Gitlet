@@ -6,7 +6,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static gitlet.Repository.*;
+import static gitlet.Repository.CWD;
+import static gitlet.Repository.OBJECT_DIR;
+import static gitlet.Repository.getBlobFromId;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
@@ -159,6 +161,14 @@ public class Commit implements Serializable {
         File file = join(CWD, fileName);
         String filePath = file.getPath();
         String blobId = blobRef.get(filePath);
+        if (blobId == null) {
+            System.out.println("Error: No blob ID found for path " + filePath);
+            System.out.println("Available paths in blobRef:");
+            for (String key : blobRef.keySet()) {
+                System.out.println("Key: " + key + ", Blob ID: " + blobRef.get(key));
+            }
+            return null;
+        }
         return getBlobFromId(blobId);
     }
 

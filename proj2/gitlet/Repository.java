@@ -8,10 +8,7 @@ import static gitlet.Utils.*;
 import static gitlet.GitUtils.*;
 
 /** Represents a gitlet repository.
- *
- *  Structure
- *
- *
+ *  Structure:
  * .gitlet
  *    |-- objects: Store commit and blob using hash value
  *    |      |-- commit
@@ -225,7 +222,7 @@ public class Repository {
      * @param message Every commit must have a non-blank message
      */
     public static void commit(String message) {
-        if (message.equals("")) {
+        if (message.length() == 0) {
             System.out.println("Please enter a commit message.");
             System.exit(0);
         }
@@ -741,14 +738,14 @@ public class Repository {
      * commit it first. and exit;</li> TODO
      * <li>perform this check before doing anything else. Do not change the CWD.</li>
      * </ul>
-     * @param branch given branch
+     * @param branchName given branch
      */
-    public static void checkoutInBranch(String branch) {
-        checkBranchExist(branch);
-        checkCurrentBranch(branch);
-        Commit newCommit = getCommitFromBranchName(branch);
+    public static void checkoutInBranch(String branchName) {
+        checkBranchExist(branchName);
+        checkCurrentBranch(branchName);
+        Commit newCommit = getCommitFromBranchName(branchName);
         switchToNewCommit(newCommit);
-        switchToNewBranch(branch);
+        switchToNewBranch(branchName);
     }
 
     /**
@@ -768,7 +765,6 @@ public class Repository {
     /**
      * Check if the branch with given branch name is current branch
      * If that branch is the current branch, print No need to check out the current branch.
-     *
      * @param branchName to check
      */
     private static void checkCurrentBranch(String branchName) {
@@ -801,7 +797,7 @@ public class Repository {
         List<String> filesTrackedByCurrentCommit = getFilesTrackedByCurrentCommit(newCommit);
         List<String> filesTrackedByNewCommit = getFilesTrackedByNewCommit(newCommit);
         List<String> filesTrackedByBothCommit = getFilesTrackedByBothCommit(newCommit);
-        deleteAllFiles(filesTrackedByCurrentCommit);
+        deleteFiles(filesTrackedByCurrentCommit);
         overwriteFiles(filesTrackedByBothCommit, newCommit);
         writeFiles(filesTrackedByNewCommit, newCommit);
         clearStage();
@@ -816,9 +812,7 @@ public class Repository {
         List<String> checkoutCommitFile = newCommit.getFileNameList();
         List<String> currentCommitFile = readCommit().getFileNameList();
         for (String fileName : checkoutCommitFile) {
-            if (currentCommitFile.contains(fileName)) {
-                currentCommitFile.remove(fileName);
-            }
+            currentCommitFile.remove(fileName);
         }
         return currentCommitFile;
     }
@@ -833,9 +827,7 @@ public class Repository {
         List<String> checkoutCommitFile = newCommit.getFileNameList();
         List<String> currentCommitFile = readCommit().getFileNameList();
         for (String fileName : currentCommitFile) {
-            if (checkoutCommitFile.contains(fileName)) {
-                checkoutCommitFile.remove(fileName);
-            }
+            checkoutCommitFile.remove(fileName);
         }
         return checkoutCommitFile;
     }
@@ -861,7 +853,7 @@ public class Repository {
      * Delete files tracked by current commit
      * @param filesToDelete files to be deleted
      */
-    private static void deleteAllFiles(List<String> filesToDelete) {
+    private static void deleteFiles(List<String> filesToDelete) {
         if (filesToDelete.isEmpty()) {
             return;
         }
@@ -946,8 +938,9 @@ public class Repository {
             System.out.println("A branch with that name already exists.");
             System.exit(0);
         }
+        commit = readCommit();
         File newBranch = join(HEADS_DIR, branchName);
-        writeContents(newBranch, getCurrCommitId());
+        writeContents(newBranch, commit.getId());
     }
 
     /**
@@ -1020,10 +1013,10 @@ public class Repository {
      * @param targetBranch to merge
      */
     public static void merge(String targetBranch) {
+        String currentBranch = getCurrBranch();
         checkUncommitedChanges();
         checkTargetBranch(targetBranch);
         checkMergeWithItself(targetBranch);
-        String currentBranch = getCurrBranch();
         commit = readCommit();
         Commit mergeCommit = getCommitFromBranchName(targetBranch);
         Commit split = getSplitPoint(commit, mergeCommit);
@@ -1036,9 +1029,9 @@ public class Repository {
         String currCommitParent = getCommitFromBranchName(currentBranch).getId();
         String mergeCommitParent = getCommitFromBranchName(targetBranch).getId();
         List<String> parent = new ArrayList<String>(List.of(currCommitParent, mergeCommitParent));
-        Commit tmp = new Commit(message, currentBlobList, parent);
+        Commit tmpCommit = new Commit(message, currentBlobList, parent);
 
-        Commit mergedCommit = mergeToNewCommit(split, tmp, mergeCommit);
+        Commit mergedCommit = mergeToNewCommit(split, tmpCommit, mergeCommit);
 
         saveCommit(mergedCommit);
     }
@@ -1118,14 +1111,14 @@ public class Repository {
     private static Commit getSplitPointFromMap(Map<String, Integer> commitMap1,
                                                Map<String, Integer> commitMap2) {
         int length = Integer.MAX_VALUE;
-        String unionId = "";
+        String splitPointId = "";
         for (String id : commitMap1.keySet()) {
             if (commitMap2.containsKey(id) && commitMap2.get(id) < length) {
                 length = commitMap2.get(id);
-                unionId = id;
+                splitPointId = id;
             }
         }
-        return getCommitFromId(unionId);
+        return getCommitFromId(splitPointId);
     }
 
     /**
@@ -1180,13 +1173,17 @@ public class Repository {
      */
     private static Commit mergeToNewCommit(Commit split, Commit tmpCommit, Commit mergeCommit) {
         List<String> allFiles = getAllFiles(split, tmpCommit, mergeCommit);
-        List<String> filesToWrite = getWriteFiles(split, tmpCommit, mergeCommit);
+
         List<String> filesToOverWrite = getOverWriteFiles(split, tmpCommit, mergeCommit);
+        List<String> filesToWrite = getWriteFiles(split, tmpCommit, mergeCommit);
         List<String> filesToDelete = getDeleteFiles(split, tmpCommit, mergeCommit);
+
         overwriteFiles(getFileNameFromBlobId(filesToOverWrite), mergeCommit);
         writeFiles(getFileNameFromBlobId(filesToWrite), mergeCommit);
-        deleteAllFiles(getFileNameFromBlobId(filesToDelete));
+        deleteFiles(getFileNameFromBlobId(filesToDelete));
+
         checkIfConflict(allFiles, split, tmpCommit, mergeCommit);
+
         return getMergedCommit(tmpCommit, filesToWrite, filesToOverWrite, filesToDelete);
     }
 
@@ -1319,7 +1316,7 @@ public class Repository {
         for (String path : splitBlobRef.keySet()) {
             if (currentBlobRef.containsKey(path) && mergeBlobRef.containsKey(path)) {
                 if (splitBlobRef.get(path).equals(currentBlobRef.get(path))
-                        && !splitBlobRef.get(path).equals(mergeBlobRef.get(path))) {
+                        && (!splitBlobRef.get(path).equals(mergeBlobRef.get(path)))) {
                     filesToOverWrite.add(mergeBlobRef.get(path));
                 }
             }
@@ -1344,7 +1341,7 @@ public class Repository {
         Map<String, String> mergeBlobRef = mergeCommit.getBlobRef();
         List<String> filesToDelete = new ArrayList<String>();
         for (String path : splitBlobRef.keySet()) {
-            if (currentBlobRef.containsKey(path) && !mergeBlobRef.containsKey(path)) {
+            if (currentBlobRef.containsKey(path) && (!mergeBlobRef.containsKey(path))) {
                 filesToDelete.add(currentBlobRef.get(path));
             }
         }
@@ -1378,27 +1375,27 @@ public class Repository {
                                           List<String> writeFiles,
                                           List<String> overwriteFiles,
                                           List<String> deleteFiles) {
-        Map<String, String> mergedFiles = mergedCommit.getBlobRef();
+        Map<String, String> mergedBlob = mergedCommit.getBlobRef();
 
         if (!overwriteFiles.isEmpty()) {
             for (String id : overwriteFiles) {
-                mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
+                mergedBlob.put(getBlobFromId(id).getBlobPath(), id);
             }
         }
 
         if (!writeFiles.isEmpty()) {
             for (String id : writeFiles) {
-                mergedFiles.put(getBlobFromId(id).getBlobPath(), id);
+                mergedBlob.put(getBlobFromId(id).getBlobPath(), id);
             }
         }
 
         if (!deleteFiles.isEmpty()) {
             for (String id : overwriteFiles) {
-                mergedFiles.remove(getBlobFromId(id).getBlobPath());
+                mergedBlob.remove(getBlobFromId(id).getBlobPath());
             }
         }
 
-        return new Commit(mergedCommit.getMessage(), mergedFiles, mergedCommit.getParentId());
+        return new Commit(mergedCommit.getMessage(), mergedBlob, mergedCommit.getParentId());
     }
 
 }
