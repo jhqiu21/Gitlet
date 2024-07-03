@@ -330,7 +330,7 @@ public class Repository {
 
         if (!removeBlobMap.isEmpty()) {
             for (String path : removeBlobMap.keySet()) {
-                newBlobMap.put(path, removeBlobMap.get(path));
+                newBlobMap.remove(path);
             }
         }
         return newBlobMap;
@@ -420,58 +420,58 @@ public class Repository {
     /**
      * Determine whether the commit is a merge commit
      * a.k.a. it has two parents
-     * @param commit to verify
+     * @param commitObj to verify
      * @return boolean value
      */
-    private static boolean isMergedCommit(Commit commit) {
-        return commit.getParentId().size() == 2;
+    private static boolean isMergedCommit(Commit commitObj) {
+        return commitObj.getParentId().size() == 2;
     }
 
     /**
      * Print info of target commit
-     * @param commit target commit
+     * @param commitObj target commit
      */
-    private static void printCommit(Commit commit) {
+    private static void printCommit(Commit commitObj) {
         System.out.println("===");
-        printCommitID(commit);
-        printCommitDate(commit);
-        printCommitMessage(commit);
+        printCommitID(commitObj);
+        printCommitDate(commitObj);
+        printCommitMessage(commitObj);
     }
 
     /**
      * Print info of target merged commit
-     * @param commit target merged commit
+     * @param commitObj target merged commit
      */
-    private static void printMergedCommit(Commit commit) {
+    private static void printMergedCommit(Commit commitObj) {
         System.out.println("===");
-        printCommitID(commit);
-        printMergeMark(commit);
-        printCommitDate(commit);
-        printCommitMessage(commit);
+        printCommitID(commitObj);
+        printMergeMark(commitObj);
+        printCommitDate(commitObj);
+        printCommitMessage(commitObj);
     }
 
     /**
      * Print commit id in log
-     * @param commit to be print in log
+     * @param commitObj to be print in log
      */
-    private static void printCommitID(Commit commit) {
-        System.out.println("commit " + commit.getId());
+    private static void printCommitID(Commit commitObj) {
+        System.out.println("commit " + commitObj.getId());
     }
 
     /**
      * Print commit date in log
-     * @param commit to be print in log
+     * @param commitObj to be print in log
      */
-    private static void printCommitDate(Commit commit) {
-        System.out.println("Date: " + commit.getTimestamp());
+    private static void printCommitDate(Commit commitObj) {
+        System.out.println("Date: " + commitObj.getTimestamp());
     }
 
     /**
      * Print commit message in log with an empty line
-     * @param commit to be print in log
+     * @param commitObj to be print in log
      */
-    private static void printCommitMessage(Commit commit) {
-        System.out.println(commit.getMessage() + "\n");
+    private static void printCommitMessage(Commit commitObj) {
+        System.out.println(commitObj.getMessage() + "\n");
     }
 
     /**
@@ -480,10 +480,10 @@ public class Repository {
      * The first parent is the branch you were on when you did the merge;
      * The second is that of the merged-in branch.
      *
-     * @param commit to be print in log
+     * @param commitObj to be print in log
      */
-    private static void printMergeMark(Commit commit) {
-        List<String> parentsList = commit.getParentId();
+    private static void printMergeMark(Commit commitObj) {
+        List<String> parentsList = commitObj.getParentId();
         String p1 = parentsList.get(0).substring(0, 7);
         String p2 = parentsList.get(1).substring(0, 7);
         System.out.println("Merge: " + p1 + " " + p2);
@@ -638,7 +638,6 @@ public class Repository {
      */
     private static void printModificationsNotStaged() {
         System.out.println("=== Modifications Not Staged For Commit ===");
-        // TODO: Bonus Part
         System.out.println();
     }
 
@@ -648,7 +647,6 @@ public class Repository {
      */
     private static void printUntrackedFiles() {
         System.out.println("=== Untracked Files ===");
-        // TODO: Bonus Part
         System.out.println();
     }
 
@@ -744,6 +742,8 @@ public class Repository {
         checkBranchExist(branchName);
         checkCurrentBranch(branchName);
         Commit newCommit = getCommitFromBranchName(branchName);
+        commit = readCommit();
+
         switchToNewCommit(newCommit);
         switchToNewBranch(branchName);
     }
@@ -795,8 +795,13 @@ public class Repository {
      */
     private static void switchToNewCommit(Commit newCommit) {
         List<String> filesTrackedByCurrentCommit = getFilesTrackedByCurrentCommit(newCommit);
-        List<String> filesTrackedByNewCommit = getFilesTrackedByNewCommit(newCommit);
         List<String> filesTrackedByBothCommit = getFilesTrackedByBothCommit(newCommit);
+        List<String> filesTrackedByNewCommit = getFilesTrackedByNewCommit(newCommit);
+
+        //System.out.println("D" + getFileNameFromBlobId(filesTrackedByCurrentCommit).toString());
+        //System.out.println("O" + getFileNameFromBlobId(filesTrackedByNewCommit).toString());
+        //System.out.println("W" + filesTrackedByBothCommit.toString());
+
         deleteFiles(filesTrackedByCurrentCommit);
         overwriteFiles(filesTrackedByBothCommit, newCommit);
         writeFiles(filesTrackedByNewCommit, newCommit);
@@ -810,7 +815,7 @@ public class Repository {
      */
     private static List<String> getFilesTrackedByCurrentCommit(Commit newCommit) {
         List<String> checkoutCommitFile = newCommit.getFileNameList();
-        List<String> currentCommitFile = readCommit().getFileNameList();
+        List<String> currentCommitFile = commit.getFileNameList();
         for (String fileName : checkoutCommitFile) {
             currentCommitFile.remove(fileName);
         }
@@ -825,7 +830,7 @@ public class Repository {
      */
     private static List<String> getFilesTrackedByNewCommit(Commit newCommit) {
         List<String> checkoutCommitFile = newCommit.getFileNameList();
-        List<String> currentCommitFile = readCommit().getFileNameList();
+        List<String> currentCommitFile = commit.getFileNameList();
         for (String fileName : currentCommitFile) {
             checkoutCommitFile.remove(fileName);
         }
@@ -839,7 +844,7 @@ public class Repository {
      */
     private static List<String> getFilesTrackedByBothCommit(Commit newCommit) {
         List<String> checkoutCommitFile = newCommit.getFileNameList();
-        List<String> currentCommitFile = readCommit().getFileNameList();
+        List<String> currentCommitFile = commit.getFileNameList();
         List<String> unionCommit = new ArrayList<String>();
         for (String fileName : currentCommitFile) {
             if (checkoutCommitFile.contains(fileName)) {
@@ -991,7 +996,7 @@ public class Repository {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
-        Commit currentCommit = readCommit();
+        commit = readCommit();
         switchToNewCommit(newCommit);
         File branchFile = join(HEADS_DIR, getCurrBranch());
         writeContents(branchFile, commitId);
@@ -1020,15 +1025,15 @@ public class Repository {
         commit = readCommit();
         Commit mergeCommit = getCommitFromBranchName(targetBranch);
         Commit split = getSplitPoint(commit, mergeCommit);
-        checkIfInCurrBranch(split);
+        checkIfInCurrBranch(split, targetBranch);
         checkIfInGivenBranch(split, targetBranch);
 
         /* Get construct new merged commit */
         Map<String, String> currentBlobList = commit.getBlobRef();
         String message = "Merged " + targetBranch + " into " + currentBranch + ".";
-        String currCommitParent = getCommitFromBranchName(currentBranch).getId();
-        String mergeCommitParent = getCommitFromBranchName(targetBranch).getId();
-        List<String> parent = new ArrayList<String>(List.of(currCommitParent, mergeCommitParent));
+        String currCommitId = getCommitFromBranchName(currentBranch).getId();
+        String mergeCommitId = getCommitFromBranchName(targetBranch).getId();
+        List<String> parent = new ArrayList<String>(List.of(currCommitId, mergeCommitId));
         Commit tmpCommit = new Commit(message, currentBlobList, parent);
 
         Commit mergedCommit = mergeToNewCommit(split, tmpCommit, mergeCommit);
@@ -1082,18 +1087,18 @@ public class Repository {
     /**
      * Find a map of commit of a given commit
      * Traverse all parents of current commit and put their parents recursively
-     * @param commit to search
+     * @param commitObj to search
      * @return commit map
      */
-    private static Map<String, Integer> getCommitMap(Commit commit, int count) {
+    private static Map<String, Integer> getCommitMap(Commit commitObj, int count) {
         Map<String, Integer> commitMap = new HashMap<String, Integer>();
-        if (commit.getParentId().isEmpty()) {
-            commitMap.put(commit.getId(), count);
+        if (commitObj.getParentId().isEmpty()) {
+            commitMap.put(commitObj.getId(), count);
             return commitMap;
         }
-        commitMap.put(commit.getId(), count);
+        commitMap.put(commitObj.getId(), count);
         count++;
-        for (String id : commit.getParentId()) {
+        for (String id : commitObj.getParentId()) {
             Commit parent = getCommitFromId(id);
             commitMap.putAll(getCommitMap(parent, count));
         }
@@ -1155,10 +1160,10 @@ public class Repository {
      *
      * @param split split node of two branch
      */
-    private static void checkIfInCurrBranch(Commit split) {
+    private static void checkIfInCurrBranch(Commit split, String newBranch) {
         if (split.getId().equals(commit.getId())) {
             System.out.println("Current branch fast-forwarded.");
-            System.exit(0);
+            checkoutInBranch(newBranch);
         }
     }
 
@@ -1213,16 +1218,27 @@ public class Repository {
 
         for (String blobId : allFiles) {
             String path = getBlobFromId(blobId).getBlobPath();
-            boolean sc = splitBlobRef.containsKey(path);
-            boolean cc = currentBlobRef.containsKey(path);
-            boolean mc = mergeBlobRef.containsKey(path);
-            if ((sc && cc && !splitBlobRef.get(path).equals(currentBlobRef.get(path)))
-                    || (sc && mc && !splitBlobRef.get(path).equals(mergeBlobRef.get(path)))
-                    || (cc && mc && !currentBlobRef.get(path).equals(mergeBlobRef.get(path)))
-                    || (sc && cc && mc
-                        && (!splitBlobRef.get(path).equals(currentBlobRef.get(path)))
-                        && (!currentBlobRef.get(path).equals(mergeBlobRef.get(path)))
-                        && (!splitBlobRef.get(path).equals(mergeBlobRef.get(path))))) {
+
+            int score = 0;
+
+            if (splitBlobRef.containsKey(path)) {
+                score += 1;
+            }
+
+            if (currentBlobRef.containsKey(path)) {
+                score += 2;
+            }
+
+            if (mergeBlobRef.containsKey(path)) {
+                score += 4;
+            }
+
+            if (((score == 3) && (!splitBlobRef.get(path).equals(currentBlobRef.get(path))))
+                    || ((score == 5) && (!splitBlobRef.get(path).equals(mergeBlobRef.get(path))))
+                    || ((score == 6) && (!currentBlobRef.get(path).equals(mergeBlobRef.get(path))))
+                    || ((score == 7) && (!splitBlobRef.get(path).equals(currentBlobRef.get(path)))
+                    && (!splitBlobRef.get(path).equals(mergeBlobRef.get(path)))
+                    && (!currentBlobRef.get(path).equals(mergeBlobRef.get(path))))) {
                 isConflict = true;
                 String currentContent = "";
                 if (currentBlobRef.containsKey(path)) {
@@ -1391,6 +1407,10 @@ public class Repository {
 
         if (!deleteFiles.isEmpty()) {
             for (String id : overwriteFiles) {
+                mergedBlob.remove(getBlobFromId(id).getBlobPath());
+            }
+
+            for (String id : deleteFiles) {
                 mergedBlob.remove(getBlobFromId(id).getBlobPath());
             }
         }

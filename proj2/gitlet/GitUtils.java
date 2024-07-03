@@ -4,9 +4,8 @@ import java.io.File;
 
 public class GitUtils {
 
-    /*
+    /**
      * Create a directory from the File object.
-     *
      * @param dir Directory File instance
      */
     public static void mkdir(File dir) {
@@ -27,5 +26,4 @@ public class GitUtils {
             return false;
         }
     }
-
 }
